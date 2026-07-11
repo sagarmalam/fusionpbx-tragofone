@@ -1,0 +1,20 @@
+# Supported features
+
+| Feature | Status |
+|---|---|
+| SIP credentials | Supported in MVP |
+| Audio calling/dialpad | Supported through client configuration |
+| Multiple direct DID caller IDs | Supported in MVP |
+| One-touch FusionPBX voicemail | Supported; default `*97` |
+| Local client call history | Supported by existing client; no data sync |
+| FusionPBX enterprise contacts | Conditional/scaffolded pending app-user contract validation |
+| IM | Explicitly disabled |
+| SMS/MMS | Explicitly disabled |
+| Video | Explicitly disabled |
+| Tragofone-hosted voicemail | Disabled |
+| FusionPBX CDR synchronization | Not supported |
+| BLF/presence | Not supported |
+| DND/call-forward synchronization | Not supported |
+| Bidirectional FusionPBX administration | Not supported |
+
+The integration synchronizes only SIP registration data, supported enterprise contacts, and direct DID caller IDs. Call history remains local to the softphone.
