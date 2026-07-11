@@ -1,0 +1,9 @@
+/vendor/
+/.phpunit.cache/
+/.phpunit.result.cache
+/.idea/
+/.vscode/
+.DS_Store
+*.log
+.env
+tragofone/resources/config.local.php

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run FusionPBX Tragofone synchronization every 30 seconds
+
+[Timer]
+OnBootSec=30
+OnUnitActiveSec=30
+AccuracySec=5
+Unit=tragofone-worker.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=FusionPBX Tragofone full reconciliation
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+EnvironmentFile=-/etc/fusionpbx/tragofone.env
+WorkingDirectory=/var/www/fusionpbx
+ExecStart=/usr/bin/php /var/www/fusionpbx/app/tragofone/resources/jobs/reconcile.php
+NoNewPrivileges=true

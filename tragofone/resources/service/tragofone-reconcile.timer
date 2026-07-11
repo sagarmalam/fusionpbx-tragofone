@@ -1,0 +1,10 @@
+[Unit]
+Description=Run FusionPBX Tragofone reconciliation every six hours
+
+[Timer]
+OnBootSec=10m
+OnUnitActiveSec=6h
+Unit=tragofone-reconcile.service
+
+[Install]
+WantedBy=timers.target
