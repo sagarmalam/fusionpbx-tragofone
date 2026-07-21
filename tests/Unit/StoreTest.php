@@ -33,8 +33,10 @@ final class StoreTest extends TestCase {
 		self::assertSame('job-1', $job['job_uuid']);
 		self::assertSame(['worker' => 'worker-1'], $database->parameters);
 		self::assertSame('row', $database->return_type);
-		self::assertStringContainsString('for update skip locked', strtolower($database->sql));
+		self::assertStringContainsString('for update of j skip locked', strtolower($database->sql));
 		self::assertStringContainsString('returning *', strtolower($database->sql));
+		self::assertStringContainsString('t.enabled=true', strtolower($database->sql));
+		self::assertStringContainsString('t.paused=false', strtolower($database->sql));
 		self::assertStringNotContainsString('begintransaction', strtolower($database->sql));
 	}
 

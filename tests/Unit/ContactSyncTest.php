@@ -15,6 +15,7 @@ final class contact_sync_store implements tragofone_store {
 	public function tenant(string $domain_uuid): ?array { return ['domain_uuid' => $domain_uuid, 'default_profile_id' => 1]; }
 	public function changed_extensions(string $domain_uuid, ?string $since): array { return []; }
 	public function destinations(string $domain_uuid): array { return []; }
+	public function extension_sync_policies(string $domain_uuid): array { return []; }
 	public function snapshot(string $domain_uuid, string $entity_type, string $entity_uuid): ?array { return $this->snapshots[$entity_type.':'.$entity_uuid] ?? null; }
 	public function save_snapshot(array $snapshot): void { $this->snapshots[$snapshot['entity_type'].':'.$snapshot['entity_uuid']] = $snapshot; }
 	public function delete_snapshot(string $domain_uuid, string $entity_type, string $entity_uuid): void { unset($this->snapshots[$entity_type.':'.$entity_uuid]); }

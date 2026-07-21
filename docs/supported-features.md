@@ -3,6 +3,7 @@
 | Feature | Status |
 |---|---|
 | SIP credentials | Supported in MVP |
+| Per-extension SIP user selection | Supported; tenant default plus explicit include/exclude |
 | Audio calling/dialpad | Supported through client configuration |
 | Multiple direct DID caller IDs | Supported in MVP |
 | DID assignment mapping/visibility | Supported in MVP |
@@ -20,6 +21,6 @@
 | DND/call-forward synchronization | Not supported |
 | Bidirectional FusionPBX administration | Not supported |
 
-Operational controls include tenant pause/resume, manual reconciliation, failed-job retry, deletion grace, one-time `401` reauthentication, and expired-lock recovery.
+Operational controls include tenant pause/resume, per-extension selection, manual reconciliation, failed-job retry, deletion grace, one-time `401` reauthentication, and expired-lock recovery.
 
 The integration synchronizes only SIP registration data, supported enterprise contacts, and direct DID caller IDs. Call history remains local to the softphone.

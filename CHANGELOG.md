@@ -23,3 +23,6 @@
 - Clear caller ID when no direct DID exists, persist DID assignment mappings, and expose them on the Mappings page.
 - Reclaim expired processing locks after worker crashes and add tenant-scoped GUI controls for reconciliation and failed-job retry.
 - Validate the live extension, DID, phonebook, retry, recovery, restricted-feature, and TLS SIP registration matrix.
+- Redesign tenant settings into responsive, clearly grouped FusionPBX-native sections with visible integration status and inheritance behavior.
+- Add tenant-scoped per-extension include/exclude policies, a default for new extensions, searchable bulk-selection UI, and safe disable/re-enable mapping reuse.
+- Prevent workers from claiming jobs for paused or disabled tenants.

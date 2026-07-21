@@ -5,17 +5,24 @@ final class tragofone_scanner {
 
 	public function scan_tenant(array $tenant, ?string $since = null): int {
 		$count = 0; $seen_extensions = []; $extension_numbers = []; $domain_uuid = $tenant['domain_uuid']; $destinations = $this->store->destinations($domain_uuid);
+		$default_extension_sync = !array_key_exists('default_extension_sync', $tenant) || $tenant['default_extension_sync'] === null
+			? true : tragofone_normalizer::boolean($tenant['default_extension_sync']);
+		$extension_policies = [];
+		foreach ($this->store->extension_sync_policies($domain_uuid) as $policy) {
+			$extension_policies[$policy['extension_uuid']] = tragofone_normalizer::boolean($policy['sync_enabled'] ?? false);
+		}
 		foreach ($this->store->changed_extensions($domain_uuid, $since) as $extension) {
 			$extension_uuid = $extension['extension_uuid']; $seen_extensions[$extension_uuid] = true;
-			$extension_numbers[(string) $extension['extension']] = $extension_uuid;
+			$sync_enabled = $extension_policies[$extension_uuid] ?? $default_extension_sync;
+			if ($sync_enabled) { $extension_numbers[(string) $extension['extension']] = $extension_uuid; }
 			$dids = tragofone_did_resolver::direct_dids((string) $extension['extension'], $destinations, $extension['effective_caller_id_number'] ?? null);
-			$source = ['extension' => $extension, 'dids' => $dids, 'policy_version' => 3];
+			$source = ['extension' => $extension, 'dids' => $dids, 'sync_enabled' => $sync_enabled, 'policy_version' => 4];
 			$hash = tragofone_normalizer::hash($source);
 			$previous = $this->store->snapshot($domain_uuid, 'extension', $extension_uuid);
 			$mapping = $this->store->extension_mapping($domain_uuid, $extension_uuid);
 			if ($mapping === null) {
 				$recoverable = $this->store->extension_mapping_by_extension($domain_uuid, (string) $extension['extension']);
-				if ($recoverable !== null && in_array($recoverable['sync_status'] ?? '', ['disable_pending', 'deletion_pending', 'disabled'], true)) {
+				if ($recoverable !== null && in_array($recoverable['sync_status'] ?? '', ['disable_pending', 'deletion_pending', 'disabled', 'exclude_pending', 'excluded'], true)) {
 					$recoverable['extension_uuid'] = $extension_uuid; $recoverable['delete_after'] = null; $recoverable['update_date'] = gmdate('c');
 					$this->store->save_extension_mapping($recoverable); $mapping = $recoverable;
 				}
@@ -23,26 +30,35 @@ final class tragofone_scanner {
 			$enabled = tragofone_normalizer::boolean($extension['enabled'] ?? false);
 			$status = $mapping['sync_status'] ?? null;
 			$needs_transition = $mapping !== null && (
-				($enabled && in_array($status, ['disable_pending', 'deletion_pending', 'disabled'], true))
-				|| (!$enabled && !in_array($status, ['disable_pending', 'disabled'], true))
+				(!$sync_enabled && !in_array($status, ['exclude_pending', 'excluded'], true))
+				|| ($sync_enabled && $enabled && in_array($status, ['exclude_pending', 'excluded'], true))
+				|| ($sync_enabled && $enabled && in_array($status, ['disable_pending', 'deletion_pending', 'disabled'], true))
+				|| ($sync_enabled && !$enabled && !in_array($status, ['disable_pending', 'disabled'], true))
 			);
 			if (($previous['record_hash'] ?? null) === $hash && !$needs_transition) { continue; }
-			if ($mapping === null) { $operation = 'create_user'; }
+			if (!$sync_enabled && $mapping === null) { $operation = null; }
+			elseif (!$sync_enabled) { $operation = 'exclude_user'; }
+			elseif ($mapping === null) { $operation = 'create_user'; }
 			elseif (!$enabled) { $operation = 'disable_user'; }
+			elseif (in_array($mapping['sync_status'] ?? '', ['exclude_pending', 'excluded'], true)) { $operation = 'include_user'; }
 			elseif (in_array($mapping['sync_status'] ?? '', ['disable_pending', 'deletion_pending', 'disabled'], true)) { $operation = 'enable_user'; }
 			else { $operation = 'update_sip_configuration'; }
-			$this->store->enqueue([
+			if ($mapping !== null && in_array($operation, ['exclude_user', 'include_user'], true)) {
+				$mapping['sync_status'] = $operation === 'exclude_user' ? 'exclude_pending' : 'include_pending';
+				$mapping['update_date'] = gmdate('c'); $this->store->save_extension_mapping($mapping);
+			}
+			if ($operation !== null) { $this->store->enqueue([
 				'job_uuid' => self::uuid(), 'domain_uuid' => $domain_uuid, 'entity_type' => 'extension', 'entity_uuid' => $extension_uuid,
 				'operation' => $operation, 'phase' => 'pending', 'payload' => json_encode($source, JSON_THROW_ON_ERROR),
 				'record_hash' => $hash, 'status' => 'pending', 'priority' => 100, 'attempt_count' => 0,
 				'correlation_id' => self::uuid(), 'insert_date' => gmdate('c'),
-			]);
+			]); }
 			$this->store->save_snapshot([
 				'snapshot_uuid' => $previous['snapshot_uuid'] ?? self::uuid(), 'domain_uuid' => $domain_uuid,
 				'entity_type' => 'extension', 'entity_uuid' => $extension_uuid, 'record_hash' => $hash,
 				'source_update_date' => $extension['update_date'] ?? gmdate('c'), 'last_seen_at' => gmdate('c'),
 			]);
-			$count++;
+			if ($operation !== null) { $count++; }
 		}
 		if ($since === null) { $this->sync_did_mappings($domain_uuid, $destinations, $extension_numbers); $count += $this->scan_deleted_extensions($tenant, $seen_extensions); }
 		$count += $this->scan_contacts($domain_uuid, $since);

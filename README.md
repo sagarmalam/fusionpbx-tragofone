@@ -7,6 +7,7 @@ Private, native FusionPBX application for tenant-aware Tragofone provisioning. I
 - Per-domain Tragofone credentials with explicit global inheritance
 - Customer identity verification and tenant-isolated tokens
 - SIP user creation and configuration using existing CRUD APIs
+- Per-extension include/exclude controls with a tenant default for newly created extensions
 - Multiple direct DID caller IDs with deterministic ordering
 - Restricted client policy: audio calling, dialpad, local history, enterprise phonebook, and one-touch voicemail
 - Transactional job outbox, retries, reconciliation, and deletion grace period

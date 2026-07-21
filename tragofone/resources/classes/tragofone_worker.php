@@ -67,7 +67,12 @@ final class tragofone_worker {
 			$mapping['record_hash'] = $job['record_hash']; $mapping['sync_status'] = 'disabled'; $mapping['last_operation'] = 'disable_user';
 			$mapping['last_synced_at'] = gmdate('c'); $mapping['update_date'] = gmdate('c'); $this->store->save_extension_mapping($mapping); return;
 		}
-		if ($job['operation'] === 'enable_user') {
+		if ($job['operation'] === 'exclude_user') {
+			$client->update_user(['user_id' => (int) $mapping['tragofone_user_id'], 'usr_status' => 'N']);
+			$mapping['record_hash'] = $job['record_hash']; $mapping['sync_status'] = 'excluded'; $mapping['last_operation'] = 'exclude_user';
+			$mapping['delete_after'] = null; $mapping['last_synced_at'] = gmdate('c'); $mapping['update_date'] = gmdate('c'); $this->store->save_extension_mapping($mapping); return;
+		}
+		if (in_array($job['operation'], ['enable_user', 'include_user'], true)) {
 			$client->update_user(['user_id' => (int) $mapping['tragofone_user_id'], 'usr_status' => 'Y']);
 			$mapping['delete_after'] = null; $mapping['deleted_at'] = null;
 		}

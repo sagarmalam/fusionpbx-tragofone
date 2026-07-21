@@ -1,8 +1,10 @@
 # How it works
 
-Every 30 seconds the scanner loads enabled tenants, reads locally changed extensions, tenant destinations, and shared phonebook contacts, normalizes relevant fields, and compares hashes. A new or changed hash produces an idempotent outbox job.
+Every 30 seconds the scanner loads enabled tenants, reads locally changed extensions, tenant destinations, and shared phonebook contacts, normalizes relevant fields, and compares hashes. A new or changed hash produces an idempotent outbox job. Paused and disabled tenants are excluded from both scanning and job claiming.
 
 For a new extension, the worker creates `{extension}@{domain}` through the existing customer user-create API, immediately persists `extension_uuid → usr_id`, then calls the separate configuration API. A crash between phases cannot duplicate the user. Updates use the stored user ID.
+
+Before creating or updating a SIP user, the scanner resolves its tenant-scoped extension policy. An explicit per-extension choice overrides the tenant default for new extensions. Unmapped exclusions are ignored. Mapped exclusions are disabled and retained with status `excluded`; re-inclusion applies the latest SIP/DID configuration and restores the same user ID.
 
 Only unambiguous, enabled, voice inbound routes with one direct extension action become DIDs. All DIDs are sent as `sip_callerid`; an effective caller-ID match is ordered first. With no direct DID, `sip_callerid` is cleared—neither the extension nor an unassigned outbound caller ID is invented as a public number. Companion-owned `destination_uuid → extension_uuid` mappings are visible on the Mappings page.
 

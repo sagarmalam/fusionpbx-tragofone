@@ -16,6 +16,7 @@ $jobs = $database->select("select status, count(*) as total from v_tragofone_syn
 		<p>Tenant-aware SIP, direct DID, and supported enterprise-contact synchronization.</p>
 		<p><?php if (permission_exists('tragofone_global_edit')) { ?><a class="btn btn-default" href="global_settings.php">Global Settings</a><?php } ?>
 		<a class="btn btn-primary" href="tenant_settings.php">Tenant Settings</a>
+		<?php if (permission_exists('tragofone_extension_sync_view')) { ?><a class="btn btn-default" href="extension_sync.php">Extension Sync</a><?php } ?>
 		<a class="btn btn-default" href="mappings.php">Mappings</a>
 		<a class="btn btn-default" href="jobs.php">Jobs</a>
 		<a class="btn btn-default" href="reconciliation.php">Reconciliation</a></p>

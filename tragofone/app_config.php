@@ -14,7 +14,8 @@ $permission_names = [
 	'tragofone_global_view', 'tragofone_global_edit', 'tragofone_tenant_view',
 	'tragofone_tenant_edit', 'tragofone_mapping_view', 'tragofone_mapping_edit',
 	'tragofone_job_view', 'tragofone_job_retry', 'tragofone_initial_sync',
-	'tragofone_manual_sync', 'tragofone_log_view',
+	'tragofone_manual_sync', 'tragofone_log_view', 'tragofone_extension_sync_view',
+	'tragofone_extension_sync_edit',
 ];
 $y = 0;
 foreach ($permission_names as $permission_name) {
@@ -43,7 +44,7 @@ $tables = [
 		['expected_company_name', 'text'], ['default_profile_id', 'numeric'],
 		['sip_server', 'text'], ['sip_port', 'numeric'], ['sip_protocol', 'text'],
 		['outbound_proxy_server', 'text'], ['outbound_proxy_port', 'numeric'],
-		['voicemail_code', 'text'], ['deletion_grace_seconds', 'numeric'],
+		['voicemail_code', 'text'], ['deletion_grace_seconds', 'numeric'], ['default_extension_sync', 'boolean'],
 		['last_auth_status', 'text'], ['last_error', 'text'], ['last_sync_at', 'timestamp'],
 		['insert_date', 'timestamp'], ['insert_user', 'uuid'], ['update_date', 'timestamp'], ['update_user', 'uuid'],
 	],
@@ -66,6 +67,11 @@ $tables = [
 		['mapping_uuid', 'uuid', 'primary'], ['domain_uuid', 'uuid', 'index'],
 		['destination_uuid', 'uuid', 'index'], ['extension_uuid', 'uuid', 'index'],
 		['did_number', 'text'], ['enabled', 'boolean'], ['record_hash', 'text'], ['last_seen_at', 'timestamp'],
+	],
+	'v_tragofone_extension_policies' => [
+		['policy_uuid', 'uuid', 'primary'], ['domain_uuid', 'uuid', 'index'], ['extension_uuid', 'uuid', 'index'],
+		['sync_enabled', 'boolean'], ['insert_date', 'timestamp'], ['insert_user', 'uuid'],
+		['update_date', 'timestamp'], ['update_user', 'uuid'],
 	],
 	'v_tragofone_snapshots' => [
 		['snapshot_uuid', 'uuid', 'primary'], ['domain_uuid', 'uuid', 'index'],

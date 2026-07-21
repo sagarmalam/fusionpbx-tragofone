@@ -5,6 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class extension_lifecycle_store implements tragofone_store {
 	public array $extensions = [];
 	public array $destination_rows = [];
+	public array $sync_policies = [];
 	public array $jobs = [];
 	public array $extension_map = [];
 	public array $snapshots = [];
@@ -19,6 +20,7 @@ final class extension_lifecycle_store implements tragofone_store {
 	public function tenant(string $domain_uuid): ?array { return ['domain_uuid' => $domain_uuid, 'default_profile_id' => 1, 'sip_server' => 'pbx.test', 'sip_port' => 5061, 'sip_protocol' => 'tls', 'voicemail_code' => '*97']; }
 	public function changed_extensions(string $domain_uuid, ?string $since): array { return $this->extensions; }
 	public function destinations(string $domain_uuid): array { return $this->destination_rows; }
+	public function extension_sync_policies(string $domain_uuid): array { return $this->sync_policies; }
 	public function snapshot(string $domain_uuid, string $entity_type, string $entity_uuid): ?array { return $this->snapshots[$entity_type.':'.$entity_uuid] ?? null; }
 	public function save_snapshot(array $snapshot): void { $this->snapshots[$snapshot['entity_type'].':'.$snapshot['entity_uuid']] = $snapshot; }
 	public function delete_snapshot(string $domain_uuid, string $entity_type, string $entity_uuid): void { unset($this->snapshots[$entity_type.':'.$entity_uuid]); }
@@ -100,6 +102,19 @@ final class ExtensionLifecycleTest extends TestCase {
 		self::assertFalse($store->did_map['did-1']['enabled']);
 	}
 
+	public function test_excluded_extension_is_removed_from_direct_did_mappings(): void {
+		$store = new extension_lifecycle_store(); $store->extensions = [$this->extension()];
+		$store->destination_rows = [[
+			'destination_uuid'=>'did-1','destination_enabled'=>true,'destination_type_voice'=>true,'destination_type'=>'inbound',
+			'destination_number'=>'+14155550100','destination_actions'=>json_encode([['destination_app'=>'transfer','destination_data'=>'1001 XML company.test']]),
+		]];
+		(new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1'], null);
+		self::assertTrue($store->did_map['did-1']['enabled']);
+		$store->sync_policies = [['extension_uuid'=>'ext-1','sync_enabled'=>false]]; $store->jobs = []; $store->snapshots = [];
+		(new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1'], null);
+		self::assertFalse($store->did_map['did-1']['enabled']);
+	}
+
 	public function test_recreated_extension_recovers_companion_owned_mapping(): void {
 		$store = new extension_lifecycle_store(); $store->extension_map['old-uuid'] = $this->mapping('old-uuid', 'deletion_pending'); $store->extensions = [$this->extension('new-uuid', true)];
 		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant(['domain_uuid' => 'domain-1'], null));
@@ -108,10 +123,32 @@ final class ExtensionLifecycleTest extends TestCase {
 
 	public function test_same_uuid_returning_during_grace_is_reenabled_even_when_hash_is_unchanged(): void {
 		$store = new extension_lifecycle_store(); $store->extension_map['ext-1'] = $this->mapping('ext-1', 'deletion_pending'); $store->extensions = [$this->extension('ext-1', true)];
-		$hash = tragofone_normalizer::hash(['extension'=>$store->extensions[0], 'dids'=>[], 'policy_version'=>3]);
+		$hash = tragofone_normalizer::hash(['extension'=>$store->extensions[0], 'dids'=>[], 'sync_enabled'=>true, 'policy_version'=>4]);
 		$store->snapshots['extension:ext-1'] = ['snapshot_uuid'=>'snapshot-1','record_hash'=>$hash];
 		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1'], null));
 		self::assertSame('enable_user', $store->jobs[0]['operation']);
+	}
+
+	public function test_default_and_explicit_extension_sync_selection(): void {
+		$store = new extension_lifecycle_store(); $store->extensions = [$this->extension()];
+		self::assertSame(0, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1','default_extension_sync'=>false], null));
+		self::assertSame([], $store->jobs); self::assertArrayHasKey('extension:ext-1', $store->snapshots);
+		$store->snapshots = []; $store->sync_policies = [['extension_uuid'=>'ext-1','sync_enabled'=>true]];
+		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1','default_extension_sync'=>false], null));
+		self::assertSame('create_user', $store->jobs[0]['operation']);
+	}
+
+	public function test_exclusion_disables_and_reinclusion_reuses_the_mapping(): void {
+		$store = new extension_lifecycle_store(); $store->extensions = [$this->extension()]; $store->extension_map['ext-1'] = $this->mapping();
+		$store->sync_policies = [['extension_uuid'=>'ext-1','sync_enabled'=>false]];
+		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1'], null)); self::assertSame('exclude_user', $store->jobs[0]['operation']);
+		$transport = new extension_lifecycle_transport(); $transport->responses = [['status'=>200,'headers'=>[],'body'=>'{"access_token":"a"}'],['status'=>200,'headers'=>[],'body'=>'{"status":"SUCCESS"}']];
+		$factory = static function () use ($transport): tragofone_client { $client = new tragofone_client('https://trago.test', $transport); $client->customer_login('company', 'password'); return $client; };
+		$store->claimed_job = array_shift($store->jobs); (new tragofone_worker($store, $factory))->run_once('worker'); self::assertSame('excluded', $store->extension_map['ext-1']['sync_status']);
+		$store->snapshots = []; $store->sync_policies = [['extension_uuid'=>'ext-1','sync_enabled'=>true]];
+		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1'], null)); self::assertSame('include_user', $store->jobs[0]['operation']);
+		$transport->responses = [['status'=>200,'headers'=>[],'body'=>'{"access_token":"b"}'],['status'=>200,'headers'=>[],'body'=>'{"status":"SUCCESS"}'],['status'=>200,'headers'=>[],'body'=>'{"status":"SUCCESS"}']];
+		$store->claimed_job = array_shift($store->jobs); (new tragofone_worker($store, $factory))->run_once('worker'); self::assertSame('synchronized', $store->extension_map['ext-1']['sync_status']); self::assertSame(9, $store->extension_map['ext-1']['tragofone_user_id']);
 	}
 
 	public function test_worker_persists_disable_enable_and_deletion_states(): void {
