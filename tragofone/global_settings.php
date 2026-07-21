@@ -1,24 +1,36 @@
 <?php
 require_once dirname(__DIR__, 2).'/resources/check_auth.php'; require_once __DIR__.'/resources/classes/bootstrap.php';
-if (!permission_exists('tragofone_global_edit')) { echo access_denied(); exit; }
-require_once 'resources/header.php'; $database = new database();
+if (!permission_exists('tragofone_global_edit')) { echo 'access denied'; exit; }
+$database = new database();
 $rows = $database->select('select * from v_tragofone_global_config limit 1', [], 'all') ?: []; $config = $rows[0] ?? [];
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_token($_SERVER['PHP_SELF'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+	$token_validator = new token;
+	if (!$token_validator->validate($_SERVER['PHP_SELF'])) {
+		http_response_code(403);
+		echo 'invalid token';
+		exit;
+	}
 	$record = ['config_uuid' => $config['config_uuid'] ?? uuid(), 'base_url' => tragofone_url_validator::validate($_POST['base_url']),
 		'customer_username' => trim($_POST['customer_username'] ?? ''), 'verify_tls' => true,
 		'default_profile_id' => (int) ($_POST['default_profile_id'] ?? 0), 'sip_port' => (int) ($_POST['sip_port'] ?? 5061),
 		'sip_protocol' => $_POST['sip_protocol'] ?? 'tls', 'voicemail_code' => trim($_POST['voicemail_code'] ?? '*97'),
+		'insert_date' => $config['insert_date'] ?? date('c'), 'insert_user' => $config['insert_user'] ?? $_SESSION['user_uuid'],
 		'update_date' => date('c'), 'update_user' => $_SESSION['user_uuid']];
 	if (!empty($_POST['customer_password'])) {
-		$key = getenv('TRAGOFONE_ENCRYPTION_KEY'); if (!$key) { throw new RuntimeException('TRAGOFONE_ENCRYPTION_KEY is not configured.'); }
-		$record['encrypted_customer_password'] = (new tragofone_crypto($key))->encrypt($_POST['customer_password']);
+		$record['encrypted_customer_password'] = tragofone_crypto::from_environment()->encrypt($_POST['customer_password']);
 	}
-	$array['v_tragofone_global_config'][0] = ['uuid' => $record['config_uuid'], ...$record];
-	$database->app_name = 'tragofone'; $database->app_uuid = '1b9e9c69-7d33-4d44-99ae-ccecb9e5d001'; $database->save($array);
+	$columns = array_keys($record);
+	$updates = array_values(array_diff($columns, ['config_uuid', 'insert_date', 'insert_user']));
+	$sql = 'insert into v_tragofone_global_config ('.implode(', ', $columns).') values (:'.implode(', :', $columns).') ';
+	$sql .= 'on conflict (config_uuid) do update set '.implode(', ', array_map(static fn ($column) => $column.' = excluded.'.$column, $updates));
+	$database->execute($sql, $record);
 	header('Location: global_settings.php'); exit;
 }
+$token_generator = new token;
+$token = $token_generator->create($_SERVER['PHP_SELF']);
+require_once 'resources/header.php';
 ?>
-<form method="post"><?= token_field() ?><div class="card"><div class="card-header"><b>Global Tragofone Defaults</b></div><div class="card-body">
+<form method="post"><input type="hidden" name="<?= escape($token['name']) ?>" value="<?= escape($token['hash']) ?>"><div class="card"><div class="card-header"><b>Global Tragofone Defaults</b></div><div class="card-body">
 <p>Tenants use these values only when explicit inheritance is enabled.</p>
 <label>Base URL</label><input class="formfld" name="base_url" value="<?= escape($config['base_url'] ?? '') ?>" required><br>
 <label>Company admin username</label><input class="formfld" name="customer_username" value="<?= escape($config['customer_username'] ?? '') ?>"><br>

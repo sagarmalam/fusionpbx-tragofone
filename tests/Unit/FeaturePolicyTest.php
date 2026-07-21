@@ -12,8 +12,11 @@ final class FeaturePolicyTest extends TestCase {
 		self::assertSame('+14155550100,+14155550101', $config['Sip']['sip_callerid']);
 		self::assertSame('*97', $config['Call']['call_onetouch_voicemailNumber']);
 		self::assertSame('FALSE', $config['IM']['im_status']);
-		self::assertSame('FALSE', $config['SMS']['sms_status']);
+		self::assertSame('FALSE', $config['Sms']['sms_status']);
 		self::assertSame('FALSE', $config['Video']['video_enableVideo']);
-		self::assertSame('TRUE', $config['CloudContacts']['cloudcontacts_status']);
+		self::assertSame('FALSE', $config['cloudcontacts']['cloudcontacts_status']);
+		self::assertSame('FALSE', $config['configurations']['configurations_dndVisibility']);
+		self::assertSame('FALSE', $config['blf']['autoenable_blf']);
+		self::assertSame('FALSE', $config['zoom']['zoom_status']);
 	}
 }

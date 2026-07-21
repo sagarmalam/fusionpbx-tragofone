@@ -18,15 +18,18 @@ final class tragofone_worker {
 	}
 
 	private function process(array $job): void {
-		$payload = json_decode($job['payload'], true, 512, JSON_THROW_ON_ERROR); $extension = $payload['extension'];
+		$payload = json_decode($job['payload'], true, 512, JSON_THROW_ON_ERROR);
 		$tenant = $this->store->tenant($job['domain_uuid']);
 		if ($tenant === null) { throw new RuntimeException('Enabled tenant configuration is missing.'); }
 		/** @var tragofone_client $client */ $client = ($this->client_factory)($tenant);
+		if ($job['entity_type'] === 'contact') { $this->process_contact($job, $payload, $client); return; }
+		$extension = $payload['extension'];
 		$mapping = $this->store->extension_mapping($job['domain_uuid'], $job['entity_uuid']);
 		if ($job['operation'] === 'create_user') {
 			$username = tragofone_normalizer::username($extension['extension'], $extension['domain_name']);
 			$result = $client->create_user([
-				'usr_username' => $username, 'usr_password' => bin2hex(random_bytes(20)),
+				// The existing Tragofone API accepts a maximum 20-character application password.
+				'usr_username' => $username, 'usr_password' => bin2hex(random_bytes(8)),
 				'usr_account_name' => $extension['effective_caller_id_name'] ?: $extension['extension'],
 				'profile_id' => $tenant['default_profile_id'] ?? null, 'send_qr_code' => 'N',
 			]);
@@ -35,6 +38,7 @@ final class tragofone_worker {
 				'extension' => $extension['extension'], 'tragofone_username' => $username,
 				'tragofone_customer_id' => $user['cust_id'] ?? $tenant['expected_customer_id'] ?? null,
 				'tragofone_user_id' => $user['usr_id'], 'tragofone_unique_id' => $user['usr_unique_id'] ?? null,
+				'profile_id' => $tenant['default_profile_id'] ?? null,
 				'sync_status' => 'created', 'insert_date' => gmdate('c'), 'update_date' => gmdate('c')];
 			$this->store->save_extension_mapping($mapping);
 		}
@@ -42,7 +46,37 @@ final class tragofone_worker {
 		if ($job['operation'] === 'disable_user') { $client->update_user(['user_id' => (int) $mapping['tragofone_user_id'], 'usr_status' => 'N']); return; }
 		$configuration = tragofone_feature_policy::configuration($extension, $tenant, $payload['dids'] ?? []);
 		$client->update_configuration((int) $mapping['tragofone_user_id'], $configuration);
+		$mapping['profile_id'] = $tenant['default_profile_id'] ?? $mapping['profile_id'] ?? null;
 		$mapping['record_hash'] = $job['record_hash']; $mapping['sync_status'] = 'synchronized'; $mapping['last_synced_at'] = gmdate('c'); $mapping['update_date'] = gmdate('c');
 		$this->store->save_extension_mapping($mapping);
+	}
+
+	private function process_contact(array $job, array $payload, tragofone_client $client): void {
+		$mapping = $this->store->contact_mapping($job['domain_uuid'], $job['entity_uuid']);
+		if ($job['operation'] === 'delete_contact') {
+			if ($mapping === null) { throw new RuntimeException('Contact mapping is missing.'); }
+			$client->delete_contact((int) $mapping['tragofone_ed_id']);
+			$mapping['sync_status'] = 'deleted'; $mapping['deleted_at'] = gmdate('c'); $mapping['update_date'] = gmdate('c');
+			$this->store->save_contact_mapping($mapping); return;
+		}
+		$contact = $payload['contact'] ?? null;
+		if (!is_array($contact)) { throw new RuntimeException('Contact payload is missing.'); }
+		if ($job['operation'] === 'create_contact') {
+			$result = $client->create_contact($contact); $data = $result['data'] ?? $result;
+			if (isset($data[0]) && is_array($data[0])) { $data = $data[0]; }
+			$ed_id = $data['ed_id'] ?? null;
+			if ($ed_id === null) { throw new RuntimeException('Contact creation did not return an enterprise directory ID.'); }
+			$mapping = [
+				'mapping_uuid' => tragofone_scanner::uuid(), 'domain_uuid' => $job['domain_uuid'],
+				'contact_uuid' => $job['entity_uuid'], 'tragofone_ed_id' => $ed_id,
+				'insert_date' => gmdate('c'), 'update_date' => gmdate('c'),
+			];
+		} else {
+			if ($mapping === null) { throw new RuntimeException('Contact mapping is missing.'); }
+			$client->update_contact(['ed_id' => (string) $mapping['tragofone_ed_id'], ...$contact]);
+		}
+		$mapping['record_hash'] = $job['record_hash']; $mapping['sync_status'] = 'synchronized';
+		$mapping['last_synced_at'] = gmdate('c'); $mapping['last_error'] = null; $mapping['update_date'] = gmdate('c');
+		$this->store->save_contact_mapping($mapping);
 	}
 }

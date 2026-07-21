@@ -8,9 +8,9 @@ Private, native FusionPBX application for tenant-aware Tragofone provisioning. I
 - Customer identity verification and tenant-isolated tokens
 - SIP user creation and configuration using existing CRUD APIs
 - Multiple direct DID caller IDs with deterministic ordering
-- Restricted client policy: audio calling, dialpad, local history, contacts, and one-touch voicemail
+- Restricted client policy: audio calling, dialpad, local history, enterprise phonebook, and one-touch voicemail
 - Transactional job outbox, retries, reconciliation, and deletion grace period
-- FusionPBX contact capability detection and enterprise-directory mapping scaffold
+- FusionPBX phonebook synchronization to the tenant-wide Tragofone Enterprise Directory
 
 No FusionPBX licensed API, remote database access, FusionPBX core patch, or Tragofone server change is required.
 

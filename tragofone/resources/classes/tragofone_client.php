@@ -8,13 +8,16 @@ final class tragofone_api_exception extends RuntimeException {
 
 final class tragofone_client {
 	private ?string $customer_token = null;
-	private ?string $user_token = null;
 
 	public function __construct(private readonly string $base_url, private readonly tragofone_http_transport $transport) {}
 
 	public function customer_login(string $username, string $password): array {
 		$response = $this->json('POST', '/api/customer/login', ['username' => $username, 'password' => $password, 'device_type' => 'web']);
-		$this->customer_token = $response['token'] ?? $response['data']['token'] ?? null;
+		$this->customer_token = $response['access_token']
+			?? $response['token']
+			?? $response['data']['access_token']
+			?? $response['data']['token']
+			?? null;
 		if ($this->customer_token === null) { throw new tragofone_api_exception('Customer login did not return a token.'); }
 		return $response;
 	}
@@ -25,19 +28,31 @@ final class tragofone_client {
 	public function update_user(array $user): array { return $this->json('POST', '/api/customer/user/update', $user, $this->require_token($this->customer_token)); }
 	public function delete_user(int $user_id): array { return $this->json('POST', '/api/customer/user/delete', ['user_id' => $user_id], $this->require_token($this->customer_token)); }
 	public function update_configuration(int $user_id, array $configuration): array {
-		return $this->json('POST', '/api/customer/user/update-configurations', ['user_id' => $user_id, 'configurations' => $configuration], $this->require_token($this->customer_token));
+		return $this->json('POST', '/api/customer/user/update-configurations', ['user_id' => $user_id, 'configurations' => $this->flatten_configuration($configuration)], $this->require_token($this->customer_token));
 	}
 	public function get_configuration(int $user_id): array { return $this->json('POST', '/api/customer/user/get-configurations', ['user_id' => $user_id], $this->require_token($this->customer_token)); }
 	public function get_qr_code(int $user_id): array { return $this->json('POST', '/api/customer/user/get-qr-code', ['user_id' => $user_id], $this->require_token($this->customer_token)); }
 
-	public function set_user_token(string $token): void { $this->user_token = $token; }
-	public function create_contact(array $contact): array { return $this->json('POST', '/api/user/enterprise/create', $contact, $this->require_token($this->user_token)); }
-	public function update_contact(array $contact): array { return $this->json('POST', '/api/user/enterprise/update', $contact, $this->require_token($this->user_token)); }
-	public function delete_contact(int $ed_id): array { return $this->json('DELETE', '/api/user/enterprise/delete', ['ed_id' => $ed_id], $this->require_token($this->user_token)); }
+	public function list_contacts(array $filter = []): array { return $this->json('POST', '/api/customer/enterprise/list', $filter, $this->require_token($this->customer_token)); }
+	public function create_contact(array $contact): array { return $this->json('POST', '/api/customer/enterprise/create', $contact, $this->require_token($this->customer_token)); }
+	public function update_contact(array $contact): array { return $this->json('POST', '/api/customer/enterprise/update', $contact, $this->require_token($this->customer_token)); }
+	public function delete_contact(int $ed_id): array { return $this->json('DELETE', '/api/customer/enterprise/delete', ['ed_id' => $ed_id], $this->require_token($this->customer_token)); }
 
 	private function require_token(?string $token): string {
 		if ($token === null) { throw new LogicException('Authentication is required before this API call.'); }
 		return $token;
+	}
+
+	private function flatten_configuration(array $configuration): array {
+		$flat = [];
+		foreach ($configuration as $key => $value) {
+			if (!is_array($value)) { $flat[$key] = $value; continue; }
+			foreach ($value as $configuration_key => $configuration_value) {
+				if (is_array($configuration_value)) { throw new InvalidArgumentException('Tragofone configuration values must be scalar.'); }
+				$flat[$configuration_key] = $configuration_value;
+			}
+		}
+		return $flat;
 	}
 
 	private function json(string $method, string $path, ?array $payload = null, ?string $token = null): array {

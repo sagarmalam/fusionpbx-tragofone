@@ -2,7 +2,7 @@
 
 - Require HTTPS and certificate verification in production.
 - Validate configured URLs and reject embedded credentials/private destinations unless explicitly approved for on-premise use.
-- Encrypt stored credentials with Sodium using key material outside the web root.
+- Encrypt stored credentials with Sodium using key material outside the web root. `/etc/fusionpbx/tragofone.env` is owned by `root:www-data` with mode `0640`, allowing only root and the FusionPBX runtime group to read it.
 - Verify customer identity after login and isolate tokens by `domain_uuid`.
 - Enforce FusionPBX permission and domain scope on every UI/action.
 - Redact tokens, passwords, SIP passwords, and secrets from logs and errors.

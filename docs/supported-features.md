@@ -7,7 +7,9 @@
 | Multiple direct DID caller IDs | Supported in MVP |
 | One-touch FusionPBX voicemail | Supported; default `*97` |
 | Local client call history | Supported by existing client; no data sync |
-| FusionPBX enterprise contacts | Conditional/scaffolded pending app-user contract validation |
+| FusionPBX shared phonebook | Supported when `v_contacts`, `v_contact_phones`, and `v_contact_emails` are present |
+| Tragofone Enterprise Directory | Supported using the tenant company-admin API |
+| Tragofone Cloud Contacts | Disabled |
 | IM | Explicitly disabled |
 | SMS/MMS | Explicitly disabled |
 | Video | Explicitly disabled |

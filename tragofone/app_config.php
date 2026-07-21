@@ -9,17 +9,6 @@ $apps[$x]['license'] = 'Proprietary';
 $apps[$x]['url'] = 'https://github.com/sagarmalam/fusionpbx-tragofone';
 $apps[$x]['description']['en-us'] = 'Tenant-aware Tragofone provisioning companion.';
 
-// Menu.
-$y = 0;
-$apps[$x]['menu'][$y]['title']['en-us'] = 'Tragofone Integration';
-$apps[$x]['menu'][$y]['uuid'] = '1b9e9c69-7d33-4d44-99ae-ccecb9e5d002';
-$apps[$x]['menu'][$y]['parent_uuid'] = 'fd29e39c-c936-f5fc-8e2b-611681b266b5';
-$apps[$x]['menu'][$y]['category'] = 'internal';
-$apps[$x]['menu'][$y]['path'] = '/app/tragofone/index.php';
-$apps[$x]['menu'][$y]['groups'][] = 'superadmin';
-$apps[$x]['menu'][$y]['groups'][] = 'admin';
-$apps[$x]['menu'][$y]['order'] = '90';
-
 // Permissions.
 $permission_names = [
 	'tragofone_global_view', 'tragofone_global_edit', 'tragofone_tenant_view',
@@ -54,8 +43,7 @@ $tables = [
 		['expected_company_name', 'text'], ['default_profile_id', 'numeric'],
 		['sip_server', 'text'], ['sip_port', 'numeric'], ['sip_protocol', 'text'],
 		['outbound_proxy_server', 'text'], ['outbound_proxy_port', 'numeric'],
-		['voicemail_code', 'text'], ['contact_username', 'text'],
-		['encrypted_contact_password', 'text'], ['contact_user_id', 'numeric'],
+		['voicemail_code', 'text'],
 		['last_auth_status', 'text'], ['last_error', 'text'], ['last_sync_at', 'timestamp'],
 		['insert_date', 'timestamp'], ['insert_user', 'uuid'], ['update_date', 'timestamp'], ['update_user', 'uuid'],
 	],

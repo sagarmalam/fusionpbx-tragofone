@@ -1,7 +1,7 @@
 <?php
 require_once dirname(__DIR__, 2).'/resources/check_auth.php';
 require_once __DIR__.'/resources/classes/bootstrap.php';
-if (!permission_exists('tragofone_status_view')) { echo access_denied(); exit; }
+if (!permission_exists('tragofone_tenant_view')) { echo 'access denied'; exit; }
 require_once 'resources/header.php';
 
 $domain_uuid = $_SESSION['domain_uuid'];
