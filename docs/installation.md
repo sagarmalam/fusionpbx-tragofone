@@ -16,7 +16,7 @@ Obtain a signed release on the FusionPBX host, verify its checksum/signature, th
 sudo FUSIONPBX_ROOT=/var/www/fusionpbx ./tragofone/resources/install/install.sh
 ```
 
-The installer copies the app, creates `/etc/fusionpbx/tragofone.env` with mode `0600`, runs FusionPBX upgrade defaults/schema, and enables the 30-second worker and six-hour reconciliation timers.
+The installer copies only the native `tragofone/` app directory, creates `/etc/fusionpbx/tragofone.env` with mode `0600`, runs FusionPBX upgrade defaults/schema, and enables the 30-second worker and six-hour reconciliation timers. FusionPBX reads the application navigation entry from `app_menu.php` when menu defaults are restored.
 
 Alternatively copy `tragofone/` to `/var/www/fusionpbx/app/tragofone`, run `php /var/www/fusionpbx/core/upgrade/upgrade.php`, install the four systemd unit files, and enable both timers.
 

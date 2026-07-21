@@ -35,14 +35,11 @@ final class tragofone_fusionpbx_store implements tragofone_store {
 	public function save_snapshot(array $snapshot): void { $this->upsert('v_tragofone_snapshots', 'snapshot_uuid', $snapshot); }
 	public function enqueue(array $job): void { $this->upsert('v_tragofone_sync_jobs', 'job_uuid', $job); }
 	public function claim_job(string $worker_id): ?array {
-		$this->database->beginTransaction();
-		try {
-			$job = $this->first("select * from v_tragofone_sync_jobs where status in ('pending','retry') and (next_attempt_at is null or next_attempt_at <= now()) and (lock_expires_at is null or lock_expires_at < now()) order by priority desc, insert_date asc limit 1 for update skip locked");
-			if ($job !== null) {
-				$this->execute("update v_tragofone_sync_jobs set status = 'processing', lock_owner = :worker, lock_expires_at = now() + interval '5 minutes', started_at = now() where job_uuid = :uuid", ['worker' => $worker_id, 'uuid' => $job['job_uuid']]);
-			}
-			$this->database->commit(); return $job;
-		} catch (Throwable $error) { $this->database->rollBack(); throw $error; }
+		// One PostgreSQL statement keeps claiming atomic without relying on PDO
+		// transaction methods that FusionPBX's database wrapper does not expose.
+		$sql = "update v_tragofone_sync_jobs set status = 'processing', lock_owner = :worker, lock_expires_at = now() + interval '5 minutes', started_at = now() where job_uuid = (select job_uuid from v_tragofone_sync_jobs where status in ('pending','retry') and (next_attempt_at is null or next_attempt_at <= now()) and (lock_expires_at is null or lock_expires_at < now()) order by priority desc, insert_date asc limit 1 for update skip locked) returning *";
+		$job = $this->database->execute($sql, ['worker' => $worker_id], 'row');
+		return is_array($job) ? $job : null;
 	}
 	public function complete_job(string $job_uuid): void { $this->execute("update v_tragofone_sync_jobs set status='completed', completed_at=now(), lock_owner=null, lock_expires_at=null where job_uuid=:uuid", ['uuid' => $job_uuid]); }
 	public function retry_job(string $job_uuid, int $attempt, int $delay, string $message): void {

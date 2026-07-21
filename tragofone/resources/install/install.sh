@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FUSIONPBX_ROOT="${FUSIONPBX_ROOT:-/var/www/fusionpbx}"
 TARGET="${FUSIONPBX_ROOT}/app/tragofone"
 
 test -f "${FUSIONPBX_ROOT}/resources/config.php" || { echo "FusionPBX not found at ${FUSIONPBX_ROOT}" >&2; exit 1; }
 install -d -o www-data -g www-data "${TARGET}"
+# Copy only the native FusionPBX application, not the repository wrapper.
 cp -a "${SOURCE_DIR}/." "${TARGET}/"
 chown -R www-data:www-data "${TARGET}"
 install -m 0644 "${TARGET}/resources/service/tragofone-worker.service" /etc/systemd/system/
