@@ -53,7 +53,14 @@ final class tragofone_fusionpbx_store implements tragofone_store {
 	private function first(string $sql, array $parameters = []): ?array { $rows = $this->select($sql, $parameters); return $rows[0] ?? null; }
 	private function execute(string $sql, array $parameters = []): void { $this->database->execute($sql, $parameters); }
 	private function upsert(string $table, string $primary_key, array $record): void {
-		$array = [$table => [['uuid' => $record[$primary_key], ...$record]]];
-		$database = new database(); $database->app_name = 'tragofone'; $database->app_uuid = '1b9e9c69-7d33-4d44-99ae-ccecb9e5d001'; $database->save($array);
+		if (!isset($record[$primary_key])) { throw new InvalidArgumentException("Missing primary key {$primary_key}."); }
+		$columns = array_keys($record);
+		foreach ([$table, $primary_key, ...$columns] as $identifier) {
+			if (!preg_match('/^[a-z][a-z0-9_]*$/', $identifier)) { throw new InvalidArgumentException('Unsafe database identifier.'); }
+		}
+		$updates = array_values(array_diff($columns, [$primary_key, 'insert_date', 'insert_user']));
+		$sql = 'insert into '.$table.' ('.implode(', ', $columns).') values (:'.implode(', :', $columns).') ';
+		$sql .= 'on conflict ('.$primary_key.') do update set '.implode(', ', array_map(static fn ($column) => $column.' = excluded.'.$column, $updates));
+		$this->database->execute($sql, $record);
 	}
 }

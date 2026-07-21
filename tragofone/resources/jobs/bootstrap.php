@@ -6,6 +6,4 @@ require_once dirname(__DIR__).'/classes/bootstrap.php';
 
 $database = new database();
 $store = new tragofone_fusionpbx_store($database);
-$crypto_key = getenv('TRAGOFONE_ENCRYPTION_KEY');
-if (!$crypto_key) { throw new RuntimeException('TRAGOFONE_ENCRYPTION_KEY is required.'); }
-$crypto = new tragofone_crypto($crypto_key);
+$crypto = tragofone_crypto::from_environment();

@@ -14,13 +14,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		'customer_username' => trim($_POST['customer_username'] ?? ''), 'verify_tls' => true,
 		'default_profile_id' => (int) ($_POST['default_profile_id'] ?? 0), 'sip_port' => (int) ($_POST['sip_port'] ?? 5061),
 		'sip_protocol' => $_POST['sip_protocol'] ?? 'tls', 'voicemail_code' => trim($_POST['voicemail_code'] ?? '*97'),
+		'insert_date' => $config['insert_date'] ?? date('c'), 'insert_user' => $config['insert_user'] ?? $_SESSION['user_uuid'],
 		'update_date' => date('c'), 'update_user' => $_SESSION['user_uuid']];
 	if (!empty($_POST['customer_password'])) {
-		$key = getenv('TRAGOFONE_ENCRYPTION_KEY'); if (!$key) { throw new RuntimeException('TRAGOFONE_ENCRYPTION_KEY is not configured.'); }
-		$record['encrypted_customer_password'] = (new tragofone_crypto($key))->encrypt($_POST['customer_password']);
+		$record['encrypted_customer_password'] = tragofone_crypto::from_environment()->encrypt($_POST['customer_password']);
 	}
-	$array['v_tragofone_global_config'][0] = ['uuid' => $record['config_uuid'], ...$record];
-	$database->app_name = 'tragofone'; $database->app_uuid = '1b9e9c69-7d33-4d44-99ae-ccecb9e5d001'; $database->save($array);
+	$columns = array_keys($record);
+	$updates = array_values(array_diff($columns, ['config_uuid', 'insert_date', 'insert_user']));
+	$sql = 'insert into v_tragofone_global_config ('.implode(', ', $columns).') values (:'.implode(', :', $columns).') ';
+	$sql .= 'on conflict (config_uuid) do update set '.implode(', ', array_map(static fn ($column) => $column.' = excluded.'.$column, $updates));
+	$database->execute($sql, $record);
 	header('Location: global_settings.php'); exit;
 }
 $token_generator = new token;

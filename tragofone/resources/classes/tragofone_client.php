@@ -14,7 +14,11 @@ final class tragofone_client {
 
 	public function customer_login(string $username, string $password): array {
 		$response = $this->json('POST', '/api/customer/login', ['username' => $username, 'password' => $password, 'device_type' => 'web']);
-		$this->customer_token = $response['token'] ?? $response['data']['token'] ?? null;
+		$this->customer_token = $response['access_token']
+			?? $response['token']
+			?? $response['data']['access_token']
+			?? $response['data']['token']
+			?? null;
 		if ($this->customer_token === null) { throw new tragofone_api_exception('Customer login did not return a token.'); }
 		return $response;
 	}
@@ -25,7 +29,7 @@ final class tragofone_client {
 	public function update_user(array $user): array { return $this->json('POST', '/api/customer/user/update', $user, $this->require_token($this->customer_token)); }
 	public function delete_user(int $user_id): array { return $this->json('POST', '/api/customer/user/delete', ['user_id' => $user_id], $this->require_token($this->customer_token)); }
 	public function update_configuration(int $user_id, array $configuration): array {
-		return $this->json('POST', '/api/customer/user/update-configurations', ['user_id' => $user_id, 'configurations' => $configuration], $this->require_token($this->customer_token));
+		return $this->json('POST', '/api/customer/user/update-configurations', ['user_id' => $user_id, 'configurations' => $this->flatten_configuration($configuration)], $this->require_token($this->customer_token));
 	}
 	public function get_configuration(int $user_id): array { return $this->json('POST', '/api/customer/user/get-configurations', ['user_id' => $user_id], $this->require_token($this->customer_token)); }
 	public function get_qr_code(int $user_id): array { return $this->json('POST', '/api/customer/user/get-qr-code', ['user_id' => $user_id], $this->require_token($this->customer_token)); }
@@ -38,6 +42,18 @@ final class tragofone_client {
 	private function require_token(?string $token): string {
 		if ($token === null) { throw new LogicException('Authentication is required before this API call.'); }
 		return $token;
+	}
+
+	private function flatten_configuration(array $configuration): array {
+		$flat = [];
+		foreach ($configuration as $key => $value) {
+			if (!is_array($value)) { $flat[$key] = $value; continue; }
+			foreach ($value as $configuration_key => $configuration_value) {
+				if (is_array($configuration_value)) { throw new InvalidArgumentException('Tragofone configuration values must be scalar.'); }
+				$flat[$configuration_key] = $configuration_value;
+			}
+		}
+		return $flat;
 	}
 
 	private function json(string $method, string $path, ?array $payload = null, ?string $token = null): array {

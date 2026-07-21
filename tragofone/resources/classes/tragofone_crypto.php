@@ -1,6 +1,21 @@
 <?php
 
 final class tragofone_crypto {
+	public static function from_environment(string $environment_file = '/etc/fusionpbx/tragofone.env'): self {
+		$key_material = getenv('TRAGOFONE_ENCRYPTION_KEY');
+		if (($key_material === false || $key_material === '') && is_readable($environment_file)) {
+			foreach (file($environment_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+				if (!str_starts_with($line, 'TRAGOFONE_ENCRYPTION_KEY=')) { continue; }
+				$key_material = trim(substr($line, strlen('TRAGOFONE_ENCRYPTION_KEY=')), " \t\n\r\0\x0B\"'");
+				break;
+			}
+		}
+		if (!is_string($key_material) || $key_material === '') {
+			throw new RuntimeException('TRAGOFONE_ENCRYPTION_KEY is not configured or readable.');
+		}
+		return new self($key_material);
+	}
+
 	public function __construct(private readonly string $key_material) {
 		if (strlen($key_material) < 32) { throw new InvalidArgumentException('Encryption key material must contain at least 32 characters.'); }
 	}

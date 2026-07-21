@@ -13,4 +13,18 @@ final class ConfigAndSecurityTest extends TestCase {
 	public function test_crypto_round_trip(): void {
 		$crypto = new tragofone_crypto(str_repeat('k', 32)); self::assertSame('secret', $crypto->decrypt($crypto->encrypt('secret')));
 	}
+	public function test_crypto_reads_the_protected_environment_file(): void {
+		$previous = getenv('TRAGOFONE_ENCRYPTION_KEY');
+		putenv('TRAGOFONE_ENCRYPTION_KEY');
+		$file = tempnam(sys_get_temp_dir(), 'tragofone-env-');
+		try {
+			file_put_contents($file, 'TRAGOFONE_ENCRYPTION_KEY='.str_repeat('f', 32).PHP_EOL);
+			$crypto = tragofone_crypto::from_environment($file);
+			self::assertSame('secret', $crypto->decrypt($crypto->encrypt('secret')));
+		} finally {
+			@unlink($file);
+			if ($previous === false) { putenv('TRAGOFONE_ENCRYPTION_KEY'); }
+			else { putenv('TRAGOFONE_ENCRYPTION_KEY='.$previous); }
+		}
+	}
 }

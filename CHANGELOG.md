@@ -11,3 +11,8 @@
 - Use declared permissions and the native FusionPBX token API across GUI pages.
 - Claim jobs atomically without calling transaction methods absent from FusionPBX's database wrapper.
 - Keep the development test stack compatible with the supported PHP 8.1 runtime.
+- Accept the live API's `access_token` login response and flatten grouped configuration policy values for `update-configurations`.
+- Enforce the API's application-password length and persist the configured profile in extension mappings.
+- Add tenant customer-ID/profile controls and enforce customer identity before synchronization.
+- Make the protected encryption key readable to PHP-FPM and workers through `root:www-data` mode `0640`.
+- Use parameterized companion-table upserts without depending on FusionPBX table-specific CRUD permissions.

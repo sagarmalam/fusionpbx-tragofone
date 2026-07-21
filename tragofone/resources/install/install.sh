@@ -16,9 +16,11 @@ install -m 0644 "${TARGET}/resources/service/tragofone-reconcile.service" /etc/s
 install -m 0644 "${TARGET}/resources/service/tragofone-reconcile.timer" /etc/systemd/system/
 if [[ ! -f /etc/fusionpbx/tragofone.env ]]; then
 	KEY="$(openssl rand -hex 32)"
-	install -m 0600 -o root -g www-data /dev/null /etc/fusionpbx/tragofone.env
+	install -m 0640 -o root -g www-data /dev/null /etc/fusionpbx/tragofone.env
 	echo "TRAGOFONE_ENCRYPTION_KEY=${KEY}" > /etc/fusionpbx/tragofone.env
 fi
+chown root:www-data /etc/fusionpbx/tragofone.env
+chmod 0640 /etc/fusionpbx/tragofone.env
 php "${FUSIONPBX_ROOT}/core/upgrade/upgrade.php"
 systemctl daemon-reload
 systemctl enable --now tragofone-worker.timer tragofone-reconcile.timer

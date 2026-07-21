@@ -17,16 +17,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		'tragofone_tenant_uuid' => $tenant['tragofone_tenant_uuid'] ?? uuid(), 'domain_uuid' => $domain_uuid,
 		'enabled' => ($_POST['enabled'] ?? '') === 'true', 'base_url' => trim($_POST['base_url'] ?? ''),
 		'customer_username' => trim($_POST['customer_username'] ?? ''), 'sip_server' => trim($_POST['sip_server'] ?? ''),
+		'expected_customer_id' => (int) ($_POST['expected_customer_id'] ?? 0),
+		'default_profile_id' => (int) ($_POST['default_profile_id'] ?? 0),
 		'sip_port' => (int) ($_POST['sip_port'] ?? 5061), 'sip_protocol' => $_POST['sip_protocol'] ?? 'tls',
-		'voicemail_code' => trim($_POST['voicemail_code'] ?? '*97'), 'update_date' => date('c'), 'update_user' => $_SESSION['user_uuid'],
+		'voicemail_code' => trim($_POST['voicemail_code'] ?? '*97'),
+		'insert_date' => $tenant['insert_date'] ?? date('c'), 'insert_user' => $tenant['insert_user'] ?? $_SESSION['user_uuid'],
+		'update_date' => date('c'), 'update_user' => $_SESSION['user_uuid'],
 	];
 	if (!empty($_POST['customer_password'])) {
-		$key = getenv('TRAGOFONE_ENCRYPTION_KEY');
-		if (!$key) { throw new RuntimeException('TRAGOFONE_ENCRYPTION_KEY is not configured.'); }
-		$record['encrypted_customer_password'] = (new tragofone_crypto($key))->encrypt($_POST['customer_password']);
+		$record['encrypted_customer_password'] = tragofone_crypto::from_environment()->encrypt($_POST['customer_password']);
 	}
-	$array['v_tragofone_tenants'][0] = ['uuid' => $record['tragofone_tenant_uuid'], ...$record];
-	$database->app_name = 'tragofone'; $database->app_uuid = '1b9e9c69-7d33-4d44-99ae-ccecb9e5d001'; $database->save($array);
+	$columns = array_keys($record);
+	$updates = array_values(array_diff($columns, ['tragofone_tenant_uuid', 'insert_date', 'insert_user']));
+	$sql = 'insert into v_tragofone_tenants ('.implode(', ', $columns).') values (:'.implode(', :', $columns).') ';
+	$sql .= 'on conflict (tragofone_tenant_uuid) do update set '.implode(', ', array_map(static fn ($column) => $column.' = excluded.'.$column, $updates));
+	$database->execute($sql, $record);
 	header('Location: tenant_settings.php'); exit;
 }
 $token_generator = new token;
@@ -39,6 +44,8 @@ require_once 'resources/header.php';
 	<label>Tragofone URL</label><input class="formfld" name="base_url" value="<?= escape($tenant['base_url'] ?? '') ?>" required><br>
 	<label>Company admin username</label><input class="formfld" name="customer_username" value="<?= escape($tenant['customer_username'] ?? '') ?>" required><br>
 	<label>Company admin password</label><input class="formfld" type="password" name="customer_password" autocomplete="new-password" placeholder="Leave blank to preserve"><br>
+	<label>Expected customer ID</label><input class="formfld" type="number" min="1" name="expected_customer_id" value="<?= escape($tenant['expected_customer_id'] ?? '') ?>" required><br>
+	<label>Default profile ID</label><input class="formfld" type="number" min="1" name="default_profile_id" value="<?= escape($tenant['default_profile_id'] ?? '') ?>" required><br>
 	<label>SIP server</label><input class="formfld" name="sip_server" value="<?= escape($tenant['sip_server'] ?? '') ?>"><br>
 	<label>SIP port</label><input class="formfld" type="number" name="sip_port" value="<?= escape($tenant['sip_port'] ?? '5061') ?>"><br>
 	<label>SIP protocol</label><select class="formfld" name="sip_protocol"><?php foreach (['tls','tcp','udp'] as $p) { ?><option <?= ($tenant['sip_protocol'] ?? 'tls') === $p ? 'selected' : '' ?>><?= $p ?></option><?php } ?></select><br>
