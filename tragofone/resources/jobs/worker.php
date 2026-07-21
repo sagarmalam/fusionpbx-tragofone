@@ -7,7 +7,7 @@ $factory = static function (array $tenant) use ($crypto): tragofone_client {
 	$client->customer_login($tenant['customer_username'], $crypto->decrypt($tenant['encrypted_customer_password']));
 	$identity = $client->customer_me(); $actual = $identity['data']['cust_id'] ?? $identity['cust_id'] ?? null;
 	if (!empty($tenant['expected_customer_id']) && (string) $actual !== (string) $tenant['expected_customer_id']) {
-		throw new RuntimeException('Authenticated Tragofone customer identity does not match tenant configuration.');
+		throw new tragofone_tenant_identity_exception('Authenticated Tragofone customer identity does not match tenant configuration.');
 	}
 	return $client;
 };

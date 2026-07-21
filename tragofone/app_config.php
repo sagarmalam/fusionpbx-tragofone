@@ -43,7 +43,7 @@ $tables = [
 		['expected_company_name', 'text'], ['default_profile_id', 'numeric'],
 		['sip_server', 'text'], ['sip_port', 'numeric'], ['sip_protocol', 'text'],
 		['outbound_proxy_server', 'text'], ['outbound_proxy_port', 'numeric'],
-		['voicemail_code', 'text'],
+		['voicemail_code', 'text'], ['deletion_grace_seconds', 'numeric'],
 		['last_auth_status', 'text'], ['last_error', 'text'], ['last_sync_at', 'timestamp'],
 		['insert_date', 'timestamp'], ['insert_user', 'uuid'], ['update_date', 'timestamp'], ['update_user', 'uuid'],
 	],

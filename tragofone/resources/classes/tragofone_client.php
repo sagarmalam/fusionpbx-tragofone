@@ -8,10 +8,14 @@ final class tragofone_api_exception extends RuntimeException {
 
 final class tragofone_client {
 	private ?string $customer_token = null;
+	private ?string $customer_username = null;
+	private ?string $customer_password = null;
 
 	public function __construct(private readonly string $base_url, private readonly tragofone_http_transport $transport) {}
 
 	public function customer_login(string $username, string $password): array {
+		$this->customer_username = $username;
+		$this->customer_password = $password;
 		$response = $this->json('POST', '/api/customer/login', ['username' => $username, 'password' => $password, 'device_type' => 'web']);
 		$this->customer_token = $response['access_token']
 			?? $response['token']
@@ -55,12 +59,16 @@ final class tragofone_client {
 		return $flat;
 	}
 
-	private function json(string $method, string $path, ?array $payload = null, ?string $token = null): array {
+	private function json(string $method, string $path, ?array $payload = null, ?string $token = null, bool $allow_reauthentication = true): array {
 		$headers = ['Accept: application/json', 'Content-Type: application/json'];
 		if ($token !== null) { $headers[] = 'Authorization: Bearer '.$token; }
 		$body = $payload === null ? null : json_encode($payload, JSON_THROW_ON_ERROR);
 		$response = $this->transport->request($method, $this->base_url.$path, $headers, $body);
 		$decoded = json_decode($response['body'], true);
+		if ($response['status'] === 401 && $token !== null && $allow_reauthentication && $this->customer_username !== null && $this->customer_password !== null) {
+			$this->customer_login($this->customer_username, $this->customer_password);
+			return $this->json($method, $path, $payload, $this->require_token($this->customer_token), false);
+		}
 		if ($response['status'] < 200 || $response['status'] >= 300) {
 			$message = is_array($decoded) ? ($decoded['message'] ?? 'Tragofone API error.') : 'Tragofone API returned invalid JSON.';
 			$retryable = in_array($response['status'], [408, 425, 429], true) || $response['status'] >= 500;

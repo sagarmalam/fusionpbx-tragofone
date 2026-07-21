@@ -55,4 +55,41 @@ final class ClientTest extends TestCase {
 		self::assertSame('/api/customer/enterprise/delete', parse_url($transport->requests[3]['url'], PHP_URL_PATH));
 		self::assertSame('DELETE', $transport->requests[3]['method']);
 	}
+
+	public function test_reauthenticates_once_after_authenticated_401(): void {
+		$transport = new fake_transport();
+		$transport->responses = [
+			['status' => 200, 'headers' => [], 'body' => '{"access_token":"expired"}'],
+			['status' => 401, 'headers' => [], 'body' => '{"message":"expired token"}'],
+			['status' => 200, 'headers' => [], 'body' => '{"access_token":"fresh"}'],
+			['status' => 200, 'headers' => [], 'body' => '{"data":[]}'],
+		];
+		$client = new tragofone_client('https://trago.test', $transport);
+		$client->customer_login('company', 'password');
+		self::assertSame(['data' => []], $client->list_users());
+		self::assertCount(4, $transport->requests);
+		self::assertContains('Authorization: Bearer expired', $transport->requests[1]['headers']);
+		self::assertSame('/api/customer/login', parse_url($transport->requests[2]['url'], PHP_URL_PATH));
+		self::assertContains('Authorization: Bearer fresh', $transport->requests[3]['headers']);
+	}
+
+	public function test_does_not_loop_when_reauthenticated_request_is_still_unauthorized(): void {
+		$transport = new fake_transport();
+		$transport->responses = [
+			['status' => 200, 'headers' => [], 'body' => '{"access_token":"expired"}'],
+			['status' => 401, 'headers' => [], 'body' => '{"message":"expired token"}'],
+			['status' => 200, 'headers' => [], 'body' => '{"access_token":"fresh"}'],
+			['status' => 401, 'headers' => [], 'body' => '{"message":"not authorized"}'],
+		];
+		$client = new tragofone_client('https://trago.test', $transport);
+		$client->customer_login('company', 'password');
+		try {
+			$client->list_users();
+			self::fail('Expected an API exception.');
+		} catch (tragofone_api_exception $error) {
+			self::assertSame(401, $error->http_status);
+			self::assertFalse($error->retryable);
+		}
+		self::assertCount(4, $transport->requests);
+	}
 }

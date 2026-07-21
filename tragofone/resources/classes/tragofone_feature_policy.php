@@ -2,11 +2,6 @@
 
 final class tragofone_feature_policy {
 	public static function configuration(array $extension, array $tenant, array $dids): array {
-		$caller_ids = $dids;
-		if ($caller_ids === []) {
-			$fallback = tragofone_normalizer::phone($extension['effective_caller_id_number'] ?? null) ?? (string) $extension['extension'];
-			$caller_ids = [$fallback];
-		}
 		return [
 			'Sip' => [
 				'sip_auth_username' => (string) $extension['extension'], 'sip_authid' => (string) $extension['extension'],
@@ -15,7 +10,9 @@ final class tragofone_feature_policy {
 				'sip_auth_sipPort' => (string) $tenant['sip_port'], 'sip_auth_sipProtocol' => $tenant['sip_protocol'],
 				'sip_auth_outboundProxyServer' => (string) ($tenant['outbound_proxy_server'] ?? ''),
 				'sip_auth_outboundProxyPort' => (string) ($tenant['outbound_proxy_port'] ?? ''),
-				'sip_extension' => (string) $extension['extension'], 'sip_callerid' => implode(',', $caller_ids),
+				// Caller IDs are authoritative only when a direct FusionPBX DID route was resolved.
+				// An extension number or an unassigned outbound caller ID must never be presented as a DID.
+				'sip_extension' => (string) $extension['extension'], 'sip_callerid' => implode(',', $dids),
 				'sip_register_interval' => '3600', 'sip_register_respectServerExpires' => 'TRUE',
 			],
 			'Call' => ['call_allowHold' => 'TRUE', 'call_allowTransfer' => 'TRUE', 'call_onetouch_voicemailNumber' => $tenant['voicemail_code']],

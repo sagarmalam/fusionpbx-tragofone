@@ -19,4 +19,13 @@ final class FeaturePolicyTest extends TestCase {
 		self::assertSame('FALSE', $config['blf']['autoenable_blf']);
 		self::assertSame('FALSE', $config['zoom']['zoom_status']);
 	}
+
+	public function test_does_not_invent_a_caller_id_without_a_direct_did(): void {
+		$config = tragofone_feature_policy::configuration(
+			['extension' => '1001', 'password' => 'secret', 'domain_name' => 'pbx.test', 'effective_caller_id_number' => '+14155559999'],
+			['sip_server' => '', 'sip_port' => 5061, 'sip_protocol' => 'tls', 'voicemail_code' => '*97'],
+			[]
+		);
+		self::assertSame('', $config['Sip']['sip_callerid']);
+	}
 }

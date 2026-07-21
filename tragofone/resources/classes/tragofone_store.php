@@ -7,13 +7,19 @@ interface tragofone_store {
 	public function destinations(string $domain_uuid): array;
 	public function snapshot(string $domain_uuid, string $entity_type, string $entity_uuid): ?array;
 	public function save_snapshot(array $snapshot): void;
+	public function delete_snapshot(string $domain_uuid, string $entity_type, string $entity_uuid): void;
 	public function enqueue(array $job): void;
 	public function claim_job(string $worker_id): ?array;
 	public function complete_job(string $job_uuid): void;
 	public function retry_job(string $job_uuid, int $attempt, int $delay, string $message): void;
 	public function fail_job(string $job_uuid, string $message): void;
 	public function extension_mapping(string $domain_uuid, string $extension_uuid): ?array;
+	public function extension_mapping_by_extension(string $domain_uuid, string $extension): ?array;
+	public function extension_mappings(string $domain_uuid): array;
 	public function save_extension_mapping(array $mapping): void;
+	public function did_mappings(string $domain_uuid): array;
+	public function save_did_mapping(array $mapping): void;
+	public function pause_tenant(string $domain_uuid, string $message): void;
 	public function contact_schema_supported(): bool;
 	public function changed_contacts(string $domain_uuid, ?string $since): array;
 	public function contact_phones(string $domain_uuid, string $contact_uuid): array;
@@ -27,8 +33,21 @@ interface tragofone_store {
 final class tragofone_fusionpbx_store implements tragofone_store {
 	public function __construct(private readonly database $database) {}
 
-	public function enabled_tenants(): array { return $this->select("select * from v_tragofone_tenants where enabled = true and (paused is null or paused = false)"); }
-	public function tenant(string $domain_uuid): ?array { return $this->first('select * from v_tragofone_tenants where domain_uuid=:domain_uuid and enabled=true', ['domain_uuid' => $domain_uuid]); }
+	public function enabled_tenants(): array {
+		$global = $this->first('select * from v_tragofone_global_config order by update_date desc nulls last limit 1') ?? [];
+		$resolved = [];
+		foreach ($this->select("select * from v_tragofone_tenants where enabled = true and (paused is null or paused = false)") as $tenant) {
+			try { $resolved[] = tragofone_config::resolve($global, $tenant); }
+			catch (InvalidArgumentException $error) { $this->pause_tenant($tenant['domain_uuid'], $error->getMessage()); }
+		}
+		return $resolved;
+	}
+	public function tenant(string $domain_uuid): ?array {
+		$tenant = $this->first('select * from v_tragofone_tenants where domain_uuid=:domain_uuid and enabled=true', ['domain_uuid' => $domain_uuid]);
+		if ($tenant === null) { return null; }
+		$global = $this->first('select * from v_tragofone_global_config order by update_date desc nulls last limit 1') ?? [];
+		return tragofone_config::resolve($global, $tenant);
+	}
 	public function changed_extensions(string $domain_uuid, ?string $since): array {
 		$sql = "select e.*, d.domain_name from v_extensions e join v_domains d on d.domain_uuid = e.domain_uuid where e.domain_uuid = :domain_uuid";
 		$params = ['domain_uuid' => $domain_uuid];
@@ -40,11 +59,12 @@ final class tragofone_fusionpbx_store implements tragofone_store {
 		return $this->first('select * from v_tragofone_snapshots where domain_uuid = :domain_uuid and entity_type = :entity_type and entity_uuid = :entity_uuid', compact('domain_uuid', 'entity_type', 'entity_uuid'));
 	}
 	public function save_snapshot(array $snapshot): void { $this->upsert('v_tragofone_snapshots', 'snapshot_uuid', $snapshot); }
+	public function delete_snapshot(string $domain_uuid, string $entity_type, string $entity_uuid): void { $this->execute('delete from v_tragofone_snapshots where domain_uuid=:domain_uuid and entity_type=:entity_type and entity_uuid=:entity_uuid', compact('domain_uuid', 'entity_type', 'entity_uuid')); }
 	public function enqueue(array $job): void { $this->upsert('v_tragofone_sync_jobs', 'job_uuid', $job); }
 	public function claim_job(string $worker_id): ?array {
 		// One PostgreSQL statement keeps claiming atomic without relying on PDO
 		// transaction methods that FusionPBX's database wrapper does not expose.
-		$sql = "update v_tragofone_sync_jobs set status = 'processing', lock_owner = :worker, lock_expires_at = now() + interval '5 minutes', started_at = now() where job_uuid = (select job_uuid from v_tragofone_sync_jobs where status in ('pending','retry') and (next_attempt_at is null or next_attempt_at <= now()) and (lock_expires_at is null or lock_expires_at < now()) order by priority desc, insert_date asc limit 1 for update skip locked) returning *";
+		$sql = "update v_tragofone_sync_jobs set status = 'processing', lock_owner = :worker, lock_expires_at = now() + interval '5 minutes', started_at = now() where job_uuid = (select job_uuid from v_tragofone_sync_jobs where ((status in ('pending','retry') and (next_attempt_at is null or next_attempt_at <= now())) or (status = 'processing' and lock_expires_at < now())) order by priority desc, insert_date asc limit 1 for update skip locked) returning *";
 		$job = $this->database->execute($sql, ['worker' => $worker_id], 'row');
 		return is_array($job) ? $job : null;
 	}
@@ -54,7 +74,14 @@ final class tragofone_fusionpbx_store implements tragofone_store {
 	}
 	public function fail_job(string $job_uuid, string $message): void { $this->execute("update v_tragofone_sync_jobs set status='dead', error_message=:message, lock_owner=null, lock_expires_at=null where job_uuid=:uuid", ['message' => tragofone_redactor::message($message), 'uuid' => $job_uuid]); }
 	public function extension_mapping(string $domain_uuid, string $extension_uuid): ?array { return $this->first('select * from v_tragofone_extension_mappings where domain_uuid=:domain_uuid and extension_uuid=:extension_uuid and deleted_at is null', compact('domain_uuid', 'extension_uuid')); }
+	public function extension_mapping_by_extension(string $domain_uuid, string $extension): ?array { return $this->first('select * from v_tragofone_extension_mappings where domain_uuid=:domain_uuid and extension=:extension and deleted_at is null order by insert_date desc limit 1', compact('domain_uuid', 'extension')); }
+	public function extension_mappings(string $domain_uuid): array { return $this->select('select * from v_tragofone_extension_mappings where domain_uuid=:domain_uuid and deleted_at is null', compact('domain_uuid')); }
 	public function save_extension_mapping(array $mapping): void { $this->upsert('v_tragofone_extension_mappings', 'mapping_uuid', $mapping); }
+	public function did_mappings(string $domain_uuid): array { return $this->select('select * from v_tragofone_did_mappings where domain_uuid=:domain_uuid', compact('domain_uuid')); }
+	public function save_did_mapping(array $mapping): void { $this->upsert('v_tragofone_did_mappings', 'mapping_uuid', $mapping); }
+	public function pause_tenant(string $domain_uuid, string $message): void {
+		$this->execute("update v_tragofone_tenants set paused=true, last_auth_status='failed', last_error=:message, update_date=now() where domain_uuid=:domain_uuid", ['message' => tragofone_redactor::message($message), 'domain_uuid' => $domain_uuid]);
+	}
 	public function contact_schema_supported(): bool {
 		$row = $this->first("select to_regclass('v_contacts') as contacts, to_regclass('v_contact_phones') as phones, to_regclass('v_contact_emails') as emails");
 		return !empty($row['contacts']) && !empty($row['phones']) && !empty($row['emails']);

@@ -17,13 +17,19 @@ final class contact_sync_store implements tragofone_store {
 	public function destinations(string $domain_uuid): array { return []; }
 	public function snapshot(string $domain_uuid, string $entity_type, string $entity_uuid): ?array { return $this->snapshots[$entity_type.':'.$entity_uuid] ?? null; }
 	public function save_snapshot(array $snapshot): void { $this->snapshots[$snapshot['entity_type'].':'.$snapshot['entity_uuid']] = $snapshot; }
+	public function delete_snapshot(string $domain_uuid, string $entity_type, string $entity_uuid): void { unset($this->snapshots[$entity_type.':'.$entity_uuid]); }
 	public function enqueue(array $job): void { $this->jobs[] = $job; }
 	public function claim_job(string $worker_id): ?array { $job = $this->claimed_job; $this->claimed_job = null; return $job; }
 	public function complete_job(string $job_uuid): void {}
 	public function retry_job(string $job_uuid, int $attempt, int $delay, string $message): void { throw new RuntimeException($message); }
 	public function fail_job(string $job_uuid, string $message): void { throw new RuntimeException($message); }
 	public function extension_mapping(string $domain_uuid, string $extension_uuid): ?array { return null; }
+	public function extension_mapping_by_extension(string $domain_uuid, string $extension): ?array { return null; }
+	public function extension_mappings(string $domain_uuid): array { return []; }
 	public function save_extension_mapping(array $mapping): void {}
+	public function did_mappings(string $domain_uuid): array { return []; }
+	public function save_did_mapping(array $mapping): void {}
+	public function pause_tenant(string $domain_uuid, string $message): void {}
 	public function contact_schema_supported(): bool { return true; }
 	public function changed_contacts(string $domain_uuid, ?string $since): array { return $this->contacts; }
 	public function contact_phones(string $domain_uuid, string $contact_uuid): array { return $this->phones[$contact_uuid] ?? []; }

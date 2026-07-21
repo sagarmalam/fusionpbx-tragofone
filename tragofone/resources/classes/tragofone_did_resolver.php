@@ -5,12 +5,8 @@ final class tragofone_did_resolver {
 	public static function direct_dids(string $extension, array $destinations, ?string $effective_caller_id = null): array {
 		$dids = [];
 		foreach ($destinations as $destination) {
-			if (!tragofone_normalizer::boolean($destination['destination_enabled'] ?? false) || !tragofone_normalizer::boolean($destination['destination_type_voice'] ?? false)) { continue; }
-			if (($destination['destination_type'] ?? 'inbound') !== 'inbound') { continue; }
-			$target = self::direct_extension($destination);
-			if ($target !== $extension) { continue; }
-			$number = tragofone_normalizer::phone($destination['destination_number'] ?? null);
-			if ($number !== null) { $dids[$number] = true; }
+			$assignment = self::direct_assignment($destination);
+			if ($assignment !== null && $assignment['extension'] === $extension) { $dids[$assignment['did']] = true; }
 		}
 		$dids = array_keys($dids);
 		sort($dids, SORT_NATURAL);
@@ -19,6 +15,14 @@ final class tragofone_did_resolver {
 			$dids = array_values(array_diff($dids, [$preferred])); array_unshift($dids, $preferred);
 		}
 		return $dids;
+	}
+
+	/** @return array{extension:string,did:string}|null */
+	public static function direct_assignment(array $destination): ?array {
+		if (!tragofone_normalizer::boolean($destination['destination_enabled'] ?? false) || !tragofone_normalizer::boolean($destination['destination_type_voice'] ?? false)) { return null; }
+		if (($destination['destination_type'] ?? 'inbound') !== 'inbound') { return null; }
+		$extension = self::direct_extension($destination); $did = tragofone_normalizer::phone($destination['destination_number'] ?? null);
+		return $extension === null || $did === null ? null : compact('extension', 'did');
 	}
 
 	private static function direct_extension(array $destination): ?string {

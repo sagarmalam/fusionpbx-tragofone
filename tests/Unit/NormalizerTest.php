@@ -4,6 +4,10 @@ use PHPUnit\Framework\TestCase;
 final class NormalizerTest extends TestCase {
 	public function test_username_is_tenant_unique(): void {
 		self::assertSame('1001@company-a.example.com', tragofone_normalizer::username('1001', 'Company-A.Example.com'));
+		self::assertNotSame(
+			tragofone_normalizer::username('1001', 'company-a.example.com'),
+			tragofone_normalizer::username('1001', 'company-b.example.com')
+		);
 	}
 	public function test_fallback_contains_uuid_prefix(): void {
 		self::assertSame('1001.a81e39b2@company.test', tragofone_normalizer::fallback_username('1001', 'company.test', 'a81e39b2-1111-2222-3333-444444444444'));

@@ -18,3 +18,8 @@
 - Use parameterized companion-table upserts without depending on FusionPBX table-specific CRUD permissions.
 - Synchronize the FusionPBX shared phonebook to Tragofone Enterprise Directory using customer-scoped APIs and immutable contact mappings.
 - Keep Tragofone Cloud Contacts disabled while supporting enterprise phonebook create, update, and mapping-owned deletion.
+- Add SIP disable/re-enable, 24-hour deletion grace, final mapped-user deletion, and mapping recovery when an extension returns during grace.
+- Add one-time `401` reauthentication and automatic tenant pause for authentication/customer-identity failures.
+- Clear caller ID when no direct DID exists, persist DID assignment mappings, and expose them on the Mappings page.
+- Reclaim expired processing locks after worker crashes and add tenant-scoped GUI controls for reconciliation and failed-job retry.
+- Validate the live extension, DID, phonebook, retry, recovery, restricted-feature, and TLS SIP registration matrix.
