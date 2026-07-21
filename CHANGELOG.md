@@ -10,3 +10,4 @@
 - Add current FusionPBX `app_menu.php` discovery with the correct Advanced parent.
 - Use declared permissions and the native FusionPBX token API across GUI pages.
 - Claim jobs atomically without calling transaction methods absent from FusionPBX's database wrapper.
+- Keep the development test stack compatible with the supported PHP 8.1 runtime.
