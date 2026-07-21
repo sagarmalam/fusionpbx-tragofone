@@ -21,7 +21,7 @@ final class tragofone_feature_policy {
 			'Call' => ['call_allowHold' => 'TRUE', 'call_allowTransfer' => 'TRUE', 'call_onetouch_voicemailNumber' => $tenant['voicemail_code']],
 			'Video' => ['video_enableVideo' => 'FALSE'], 'IM' => ['im_status' => 'FALSE'],
 			'Sms' => ['sms_status' => 'FALSE', 'sms_callerId' => ''], 'voicemail' => ['voicemail_status' => 'FALSE'],
-			'cloudcontacts' => ['cloudcontacts_status' => 'TRUE'], 'crm' => ['crm_integration' => 'FALSE'],
+			'cloudcontacts' => ['cloudcontacts_status' => 'FALSE'], 'crm' => ['crm_integration' => 'FALSE'],
 			'textableintegration' => ['textable_integration' => 'FALSE'], 'CallForwarding' => ['callforwarding' => 'FALSE'],
 			'configurations' => ['configurations_dndVisibility' => 'FALSE', 'configurations_autoanswerVisibility' => 'FALSE'],
 			'blf' => ['autoenable_blf' => 'FALSE'], 'zoom' => ['zoom_status' => 'FALSE'],

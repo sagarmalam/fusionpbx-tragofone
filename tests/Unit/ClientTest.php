@@ -36,4 +36,23 @@ final class ClientTest extends TestCase {
 		$client->customer_me();
 		self::assertContains('Authorization: Bearer legacy', $transport->requests[1]['headers']);
 	}
+
+	public function test_uses_customer_enterprise_directory_endpoints(): void {
+		$transport = new fake_transport();
+		$transport->responses = [
+			['status' => 200, 'headers' => [], 'body' => '{"access_token":"abc"}'],
+			['status' => 200, 'headers' => [], 'body' => '{"data":{"ed_id":7}}'],
+			['status' => 200, 'headers' => [], 'body' => '{"status":"SUCCESS"}'],
+			['status' => 200, 'headers' => [], 'body' => '{"status":"SUCCESS"}'],
+		];
+		$client = new tragofone_client('https://trago.test', $transport);
+		$client->customer_login('company', 'password');
+		$client->create_contact(['ed_first_name' => 'Ada']);
+		$client->update_contact(['ed_id' => '7', 'ed_first_name' => 'Grace']);
+		$client->delete_contact(7);
+		self::assertSame('/api/customer/enterprise/create', parse_url($transport->requests[1]['url'], PHP_URL_PATH));
+		self::assertSame('/api/customer/enterprise/update', parse_url($transport->requests[2]['url'], PHP_URL_PATH));
+		self::assertSame('/api/customer/enterprise/delete', parse_url($transport->requests[3]['url'], PHP_URL_PATH));
+		self::assertSame('DELETE', $transport->requests[3]['method']);
+	}
 }

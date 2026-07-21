@@ -8,7 +8,7 @@ final class tragofone_scanner {
 		foreach ($this->store->changed_extensions($domain_uuid, $since) as $extension) {
 			$extension_uuid = $extension['extension_uuid'];
 			$dids = tragofone_did_resolver::direct_dids((string) $extension['extension'], $destinations, $extension['effective_caller_id_number'] ?? null);
-			$source = ['extension' => $extension, 'dids' => $dids, 'policy_version' => 1];
+			$source = ['extension' => $extension, 'dids' => $dids, 'policy_version' => 2];
 			$hash = tragofone_normalizer::hash($source);
 			$previous = $this->store->snapshot($domain_uuid, 'extension', $extension_uuid);
 			if (($previous['record_hash'] ?? null) === $hash) { continue; }
@@ -27,7 +27,65 @@ final class tragofone_scanner {
 			]);
 			$count++;
 		}
+		$count += $this->scan_contacts($domain_uuid, $since);
 		return $count;
+	}
+
+	private function scan_contacts(string $domain_uuid, ?string $since): int {
+		if (!$this->store->contact_schema_supported()) { return 0; }
+		$count = 0; $seen = [];
+		foreach ($this->store->changed_contacts($domain_uuid, $since) as $source_contact) {
+			$contact_uuid = $source_contact['contact_uuid']; $seen[$contact_uuid] = true;
+			$contact = tragofone_contact_mapper::map(
+				$source_contact,
+				$this->store->contact_phones($domain_uuid, $contact_uuid),
+				$this->store->contact_emails($domain_uuid, $contact_uuid)
+			);
+			$mapping = $this->store->contact_mapping($domain_uuid, $contact_uuid);
+			if ($contact === null) {
+				if ($mapping !== null && ($mapping['sync_status'] ?? '') !== 'delete_pending') {
+					$count += $this->enqueue_contact_delete($mapping);
+				}
+				continue;
+			}
+			$source = ['contact' => $contact, 'policy_version' => 1];
+			$hash = tragofone_normalizer::hash($source);
+			$previous = $this->store->snapshot($domain_uuid, 'contact', $contact_uuid);
+			if (($previous['record_hash'] ?? null) === $hash) { continue; }
+			$this->store->enqueue([
+				'job_uuid' => self::uuid(), 'domain_uuid' => $domain_uuid, 'entity_type' => 'contact', 'entity_uuid' => $contact_uuid,
+				'operation' => $mapping === null ? 'create_contact' : 'update_contact', 'phase' => 'pending',
+				'payload' => json_encode($source, JSON_THROW_ON_ERROR), 'record_hash' => $hash,
+				'status' => 'pending', 'priority' => 50, 'attempt_count' => 0,
+				'correlation_id' => self::uuid(), 'insert_date' => gmdate('c'),
+			]);
+			$this->store->save_snapshot([
+				'snapshot_uuid' => $previous['snapshot_uuid'] ?? self::uuid(), 'domain_uuid' => $domain_uuid,
+				'entity_type' => 'contact', 'entity_uuid' => $contact_uuid, 'record_hash' => $hash,
+				'source_update_date' => $source_contact['update_date'] ?? $source_contact['insert_date'] ?? gmdate('c'),
+				'last_seen_at' => gmdate('c'),
+			]);
+			$count++;
+		}
+		if ($since === null) {
+			foreach ($this->store->contact_mappings($domain_uuid) as $mapping) {
+				if (isset($seen[$mapping['contact_uuid']]) || ($mapping['sync_status'] ?? '') === 'delete_pending') { continue; }
+				$count += $this->enqueue_contact_delete($mapping);
+			}
+		}
+		return $count;
+	}
+
+	private function enqueue_contact_delete(array $mapping): int {
+		$this->store->enqueue([
+			'job_uuid' => self::uuid(), 'domain_uuid' => $mapping['domain_uuid'], 'entity_type' => 'contact', 'entity_uuid' => $mapping['contact_uuid'],
+			'operation' => 'delete_contact', 'phase' => 'pending', 'payload' => '{}',
+			'record_hash' => $mapping['record_hash'] ?? null, 'status' => 'pending', 'priority' => 40,
+			'attempt_count' => 0, 'correlation_id' => self::uuid(), 'insert_date' => gmdate('c'),
+		]);
+		$mapping['sync_status'] = 'delete_pending'; $mapping['update_date'] = gmdate('c');
+		$this->store->save_contact_mapping($mapping);
+		return 1;
 	}
 
 	public static function uuid(): string {

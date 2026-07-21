@@ -16,3 +16,5 @@
 - Add tenant customer-ID/profile controls and enforce customer identity before synchronization.
 - Make the protected encryption key readable to PHP-FPM and workers through `root:www-data` mode `0640`.
 - Use parameterized companion-table upserts without depending on FusionPBX table-specific CRUD permissions.
+- Synchronize the FusionPBX shared phonebook to Tragofone Enterprise Directory using customer-scoped APIs and immutable contact mappings.
+- Keep Tragofone Cloud Contacts disabled while supporting enterprise phonebook create, update, and mapping-owned deletion.

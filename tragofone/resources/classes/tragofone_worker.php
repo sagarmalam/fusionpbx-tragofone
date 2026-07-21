@@ -18,10 +18,12 @@ final class tragofone_worker {
 	}
 
 	private function process(array $job): void {
-		$payload = json_decode($job['payload'], true, 512, JSON_THROW_ON_ERROR); $extension = $payload['extension'];
+		$payload = json_decode($job['payload'], true, 512, JSON_THROW_ON_ERROR);
 		$tenant = $this->store->tenant($job['domain_uuid']);
 		if ($tenant === null) { throw new RuntimeException('Enabled tenant configuration is missing.'); }
 		/** @var tragofone_client $client */ $client = ($this->client_factory)($tenant);
+		if ($job['entity_type'] === 'contact') { $this->process_contact($job, $payload, $client); return; }
+		$extension = $payload['extension'];
 		$mapping = $this->store->extension_mapping($job['domain_uuid'], $job['entity_uuid']);
 		if ($job['operation'] === 'create_user') {
 			$username = tragofone_normalizer::username($extension['extension'], $extension['domain_name']);
@@ -47,5 +49,34 @@ final class tragofone_worker {
 		$mapping['profile_id'] = $tenant['default_profile_id'] ?? $mapping['profile_id'] ?? null;
 		$mapping['record_hash'] = $job['record_hash']; $mapping['sync_status'] = 'synchronized'; $mapping['last_synced_at'] = gmdate('c'); $mapping['update_date'] = gmdate('c');
 		$this->store->save_extension_mapping($mapping);
+	}
+
+	private function process_contact(array $job, array $payload, tragofone_client $client): void {
+		$mapping = $this->store->contact_mapping($job['domain_uuid'], $job['entity_uuid']);
+		if ($job['operation'] === 'delete_contact') {
+			if ($mapping === null) { throw new RuntimeException('Contact mapping is missing.'); }
+			$client->delete_contact((int) $mapping['tragofone_ed_id']);
+			$mapping['sync_status'] = 'deleted'; $mapping['deleted_at'] = gmdate('c'); $mapping['update_date'] = gmdate('c');
+			$this->store->save_contact_mapping($mapping); return;
+		}
+		$contact = $payload['contact'] ?? null;
+		if (!is_array($contact)) { throw new RuntimeException('Contact payload is missing.'); }
+		if ($job['operation'] === 'create_contact') {
+			$result = $client->create_contact($contact); $data = $result['data'] ?? $result;
+			if (isset($data[0]) && is_array($data[0])) { $data = $data[0]; }
+			$ed_id = $data['ed_id'] ?? null;
+			if ($ed_id === null) { throw new RuntimeException('Contact creation did not return an enterprise directory ID.'); }
+			$mapping = [
+				'mapping_uuid' => tragofone_scanner::uuid(), 'domain_uuid' => $job['domain_uuid'],
+				'contact_uuid' => $job['entity_uuid'], 'tragofone_ed_id' => $ed_id,
+				'insert_date' => gmdate('c'), 'update_date' => gmdate('c'),
+			];
+		} else {
+			if ($mapping === null) { throw new RuntimeException('Contact mapping is missing.'); }
+			$client->update_contact(['ed_id' => (string) $mapping['tragofone_ed_id'], ...$contact]);
+		}
+		$mapping['record_hash'] = $job['record_hash']; $mapping['sync_status'] = 'synchronized';
+		$mapping['last_synced_at'] = gmdate('c'); $mapping['last_error'] = null; $mapping['update_date'] = gmdate('c');
+		$this->store->save_contact_mapping($mapping);
 	}
 }
