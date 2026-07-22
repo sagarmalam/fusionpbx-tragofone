@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Document the explicit FusionPBX 5.5 and PHP compatibility matrix, required extensions, verified Debian/PostgreSQL baseline, complete installation validation, and oneshot service behavior.
+- Add FusionPBX 5.5-compatible installation detection and installer preflight checks, and honor custom PHP binary, FusionPBX root, runtime user, and runtime group values in generated systemd services.
+- Declare runtime PHP extensions in Composer metadata and syntax-check the installer in CI.
+
 ## 0.1.0 - Unreleased
 
 - Bootstrap native FusionPBX companion application.

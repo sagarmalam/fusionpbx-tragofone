@@ -20,7 +20,7 @@ No FusionPBX licensed API, remote database access, FusionPBX core patch, or Trag
 
 ## Quick start
 
-See [Installation](docs/installation.md), then [Configuration](docs/configuration.md). Superadmins and company administrators should use the [User manual](docs/user-manual.md) for daily operation. The project is an MVP and must be validated against the target FusionPBX and Tragofone versions before production rollout.
+See [Installation](docs/installation.md) for the explicit FusionPBX/PHP compatibility matrix and verified installation procedure, then [Configuration](docs/configuration.md). Superadmins and company administrators should use the [User manual](docs/user-manual.md) for daily operation. The current supported FusionPBX target is the 5.5 series; the project remains an MVP and must be validated against the exact target environment before production rollout.
 
 ## Documentation
 
