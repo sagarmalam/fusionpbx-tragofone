@@ -115,7 +115,9 @@ final class tragofone_fusionpbx_store implements tragofone_store {
 
 	private function select(string $sql, array $parameters = []): array { return $this->database->select($sql, $parameters, 'all') ?: []; }
 	private function first(string $sql, array $parameters = []): ?array { $rows = $this->select($sql, $parameters); return $rows[0] ?? null; }
-	private function execute(string $sql, array $parameters = []): void { $this->database->execute($sql, $parameters); }
+	private function execute(string $sql, array $parameters = []): void {
+		if ($this->database->execute($sql, $this->database_parameters($parameters)) === false) { throw new RuntimeException('FusionPBX database write failed.'); }
+	}
 	private function upsert(string $table, string $primary_key, array $record): void {
 		if (!isset($record[$primary_key])) { throw new InvalidArgumentException("Missing primary key {$primary_key}."); }
 		$columns = array_keys($record);
@@ -125,6 +127,9 @@ final class tragofone_fusionpbx_store implements tragofone_store {
 		$updates = array_values(array_diff($columns, [$primary_key, 'insert_date', 'insert_user']));
 		$sql = 'insert into '.$table.' ('.implode(', ', $columns).') values (:'.implode(', :', $columns).') ';
 		$sql .= 'on conflict ('.$primary_key.') do update set '.implode(', ', array_map(static fn ($column) => $column.' = excluded.'.$column, $updates));
-		$this->database->execute($sql, $record);
+		if ($this->database->execute($sql, $this->database_parameters($record)) === false) { throw new RuntimeException('FusionPBX database write failed.'); }
+	}
+	private function database_parameters(array $parameters): array {
+		return array_map(static fn ($value) => is_bool($value) ? ($value ? 'true' : 'false') : $value, $parameters);
 	}
 }

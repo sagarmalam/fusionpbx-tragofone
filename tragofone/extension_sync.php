@@ -1,11 +1,12 @@
 <?php
 require_once dirname(__DIR__, 2).'/resources/check_auth.php'; require_once __DIR__.'/resources/classes/bootstrap.php';
 if (!permission_exists('tragofone_extension_sync_view')) { echo 'access denied'; exit; }
-$database = new database(); $domain_uuid = $_SESSION['domain_uuid']; $parameters = ['domain_uuid'=>$domain_uuid];
+$database = new database(); $domain_uuid = $_SESSION['domain_uuid']; $parameters = ['domain_uuid'=>$domain_uuid]; $error_message = null;
 $tenant_rows = $database->select('select * from v_tragofone_tenants where domain_uuid=:domain_uuid', $parameters, 'all') ?: []; $tenant = $tenant_rows[0] ?? [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	if (!permission_exists('tragofone_extension_sync_edit')) { echo 'access denied'; exit; }
 	$token_validator = new token; if (!$token_validator->validate($_SERVER['PHP_SELF'])) { http_response_code(403); echo 'invalid token'; exit; }
+	try {
 	$posted_extensions = $_POST['sync_extensions'] ?? []; if (!is_array($posted_extensions)) { $posted_extensions = []; }
 	$selected = array_fill_keys(array_map('strval', $posted_extensions), true);
 	$extensions = $database->select('select extension_uuid from v_extensions where domain_uuid=:domain_uuid', $parameters, 'all') ?: [];
@@ -15,10 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$extension_uuid = $extension['extension_uuid']; $existing = $policies[$extension_uuid] ?? [];
 		$record = [
 			'policy_uuid'=>$existing['policy_uuid'] ?? uuid(), 'domain_uuid'=>$domain_uuid, 'extension_uuid'=>$extension_uuid,
-			'sync_enabled'=>isset($selected[$extension_uuid]), 'insert_date'=>$existing['insert_date'] ?? date('c'),
+			// PDO treats execute-array values as strings. Use PostgreSQL boolean
+			// literals so an unchecked box is not bound as an empty string.
+			'sync_enabled'=>isset($selected[$extension_uuid]) ? 'true' : 'false', 'insert_date'=>$existing['insert_date'] ?? date('c'),
 			'insert_user'=>$existing['insert_user'] ?? $_SESSION['user_uuid'], 'update_date'=>date('c'), 'update_user'=>$_SESSION['user_uuid'],
 		];
-		$database->execute('insert into v_tragofone_extension_policies (policy_uuid,domain_uuid,extension_uuid,sync_enabled,insert_date,insert_user,update_date,update_user) values (:policy_uuid,:domain_uuid,:extension_uuid,:sync_enabled,:insert_date,:insert_user,:update_date,:update_user) on conflict (policy_uuid) do update set sync_enabled=excluded.sync_enabled,update_date=excluded.update_date,update_user=excluded.update_user', $record);
+		if ($database->execute('insert into v_tragofone_extension_policies (policy_uuid,domain_uuid,extension_uuid,sync_enabled,insert_date,insert_user,update_date,update_user) values (:policy_uuid,:domain_uuid,:extension_uuid,:sync_enabled,:insert_date,:insert_user,:update_date,:update_user) on conflict (policy_uuid) do update set sync_enabled=excluded.sync_enabled,update_date=excluded.update_date,update_user=excluded.update_user', $record) === false) {
+			throw new RuntimeException('Unable to save the extension synchronization policy.');
+		}
 	}
 	$queued = 0;
 	if (tragofone_normalizer::boolean($tenant['enabled'] ?? false) && !tragofone_normalizer::boolean($tenant['paused'] ?? false)) {
@@ -26,6 +31,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		if ($resolved_tenant !== null) { $queued = (new tragofone_scanner($store))->scan_tenant($resolved_tenant, null); }
 	}
 	header('Location: extension_sync.php?saved=1&queued='.$queued); exit;
+	} catch (Throwable $error) {
+		$error_message = tragofone_redactor::message($error->getMessage());
+	}
 }
 $default_sync = !array_key_exists('default_extension_sync', $tenant) || $tenant['default_extension_sync'] === null ? true : tragofone_normalizer::boolean($tenant['default_extension_sync']);
 $extensions = $database->select("select e.extension_uuid,e.extension,e.effective_caller_id_name,e.enabled,p.sync_enabled,m.tragofone_user_id,m.sync_status,m.last_synced_at from v_extensions e left join v_tragofone_extension_policies p on p.domain_uuid=e.domain_uuid and p.extension_uuid=e.extension_uuid left join v_tragofone_extension_mappings m on m.domain_uuid=e.domain_uuid and m.extension_uuid=e.extension_uuid and m.deleted_at is null where e.domain_uuid=:domain_uuid order by e.extension", $parameters, 'all') ?: [];
@@ -33,11 +41,12 @@ $selected_count = 0; foreach ($extensions as &$extension) { $extension['effectiv
 $token_generator = new token; $token = $token_generator->create($_SERVER['PHP_SELF']); require_once 'resources/header.php';
 ?>
 <style>
-.tf-wrap{max-width:1180px;margin:0 auto 32px}.tf-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin:8px 0 18px}.tf-head h2{margin:0 0 5px}.tf-subtle{color:#667085;font-size:13px}.tf-actions{display:flex;gap:8px;flex-wrap:wrap}.tf-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.tf-stat{background:var(--card-background-color,#fff);border:1px solid var(--border-color,#d0d5dd);border-radius:9px;padding:14px 16px}.tf-stat strong{font-size:22px;display:block}.tf-card{background:var(--card-background-color,#fff);border:1px solid var(--border-color,#d0d5dd);border-radius:10px;overflow:hidden}.tf-toolbar{display:flex;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid var(--border-color,#eaecf0);align-items:center}.tf-toolbar-left{display:flex;gap:8px;align-items:center}.tf-search{min-width:260px}.tf-table{width:100%;border-collapse:collapse}.tf-table th,.tf-table td{padding:12px 14px;border-bottom:1px solid var(--border-color,#eaecf0);text-align:left;vertical-align:middle}.tf-table th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#667085;background:#f8fafc}.tf-table tr:last-child td{border-bottom:0}.tf-extension{font-weight:700}.tf-name{display:block;color:#667085;font-size:12px;margin-top:2px}.tf-badge{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:600}.tf-badge.ok{color:#067647;background:#ecfdf3}.tf-badge.off{color:#475467;background:#f2f4f7}.tf-badge.warn{color:#b54708;background:#fffaeb}.tf-switch{width:18px;height:18px}.tf-alert{padding:12px 15px;border-radius:8px;margin-bottom:16px;color:#067647;background:#ecfdf3;border:1px solid #abefc6}.tf-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px}.tf-note{color:#667085;font-size:12px}@media(max-width:760px){.tf-head,.tf-toolbar,.tf-footer{flex-direction:column;align-items:stretch}.tf-summary{grid-template-columns:1fr}.tf-search{min-width:0;width:100%}.tf-table{display:block;overflow-x:auto}}
+.tf-wrap{max-width:1180px;margin:0 auto 32px}.tf-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin:8px 0 18px}.tf-head h2{margin:0 0 5px}.tf-subtle{color:#667085;font-size:13px}.tf-actions{display:flex;gap:8px;flex-wrap:wrap}.tf-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.tf-stat{background:var(--card-background-color,#fff);border:1px solid var(--border-color,#d0d5dd);border-radius:9px;padding:14px 16px}.tf-stat strong{font-size:22px;display:block}.tf-card{background:var(--card-background-color,#fff);border:1px solid var(--border-color,#d0d5dd);border-radius:10px;overflow:hidden}.tf-toolbar{display:flex;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid var(--border-color,#eaecf0);align-items:center}.tf-toolbar-left{display:flex;gap:8px;align-items:center}.tf-search{min-width:260px}.tf-table{width:100%;border-collapse:collapse}.tf-table th,.tf-table td{padding:12px 14px;border-bottom:1px solid var(--border-color,#eaecf0);text-align:left;vertical-align:middle}.tf-table th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#667085;background:#f8fafc}.tf-table tr:last-child td{border-bottom:0}.tf-extension{font-weight:700}.tf-name{display:block;color:#667085;font-size:12px;margin-top:2px}.tf-badge{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:600}.tf-badge.ok{color:#067647;background:#ecfdf3}.tf-badge.off{color:#475467;background:#f2f4f7}.tf-badge.warn{color:#b54708;background:#fffaeb}.tf-switch{width:18px;height:18px}.tf-alert{padding:12px 15px;border-radius:8px;margin-bottom:16px;color:#067647;background:#ecfdf3;border:1px solid #abefc6}.tf-alert.error{color:#b42318;background:#fef3f2;border-color:#fecdca}.tf-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px}.tf-note{color:#667085;font-size:12px}@media(max-width:760px){.tf-head,.tf-toolbar,.tf-footer{flex-direction:column;align-items:stretch}.tf-summary{grid-template-columns:1fr}.tf-search{min-width:0;width:100%}.tf-table{display:block;overflow-x:auto}}
 </style>
 <div class="tf-wrap">
 	<div class="tf-head"><div><h2>Extension Synchronization</h2><div class="tf-subtle">Choose which FusionPBX SIP extensions may be provisioned into Tragofone.</div></div><div class="tf-actions"><a class="btn btn-default" href="tenant_settings.php">Tenant Settings</a><a class="btn btn-default" href="mappings.php">Mappings</a></div></div>
 	<?php if (isset($_GET['saved'])) { ?><div class="tf-alert">Extension selection saved. <?= (int) ($_GET['queued'] ?? 0) ?> synchronization job(s) queued.</div><?php } ?>
+	<?php if ($error_message !== null) { ?><div class="tf-alert error"><?= escape($error_message) ?></div><?php } ?>
 	<div class="tf-summary"><div class="tf-stat"><strong><?= count($extensions) ?></strong><span class="tf-subtle">FusionPBX extensions</span></div><div class="tf-stat"><strong id="selected_count"><?= $selected_count ?></strong><span class="tf-subtle">Selected for Tragofone</span></div><div class="tf-stat"><strong id="excluded_count"><?= count($extensions)-$selected_count ?></strong><span class="tf-subtle">Excluded</span></div></div>
 	<form method="post"><input type="hidden" name="<?= escape($token['name']) ?>" value="<?= escape($token['hash']) ?>">
 	<div class="tf-card"><div class="tf-toolbar"><div class="tf-toolbar-left"><button class="btn btn-default" id="select_all" type="button">Select all</button><button class="btn btn-default" id="select_none" type="button">Select none</button></div><input id="extension_search" class="formfld tf-search" type="search" placeholder="Search extension or name"></div>

@@ -26,3 +26,5 @@
 - Redesign tenant settings into responsive, clearly grouped FusionPBX-native sections with visible integration status and inheritance behavior.
 - Add tenant-scoped per-extension include/exclude policies, a default for new extensions, searchable bulk-selection UI, and safe disable/re-enable mapping reuse.
 - Prevent workers from claiming jobs for paused or disabled tenants.
+- Restore FusionPBX group permissions during installation and document the required upgrade pass.
+- Serialize PostgreSQL boolean parameters explicitly and surface failed companion writes instead of silently accepting them.

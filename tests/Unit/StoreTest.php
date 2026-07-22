@@ -46,4 +46,17 @@ final class StoreTest extends TestCase {
 
 		self::assertNull($store->claim_job('worker-2'));
 	}
+
+	public function test_upsert_serializes_false_as_postgresql_boolean_literal(): void {
+		$database = new database(); $database->result = [];
+		$store = new tragofone_fusionpbx_store($database);
+		$store->save_did_mapping(['mapping_uuid'=>'map-1','domain_uuid'=>'domain-1','destination_uuid'=>'did-1','extension_uuid'=>'ext-1','enabled'=>false]);
+		self::assertSame('false', $database->parameters['enabled']);
+	}
+
+	public function test_failed_upsert_is_not_silently_ignored(): void {
+		$this->expectException(RuntimeException::class);
+		$store = new tragofone_fusionpbx_store(new database());
+		$store->save_did_mapping(['mapping_uuid'=>'map-1','enabled'=>false]);
+	}
 }

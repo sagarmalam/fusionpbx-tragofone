@@ -17,15 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		if (!$inherit_global_credentials && empty($_POST['customer_password']) && empty($tenant['encrypted_customer_password'])) { throw new InvalidArgumentException('Company admin password is required unless global credentials are inherited.'); }
 		$record = [
 			'tragofone_tenant_uuid' => $tenant['tragofone_tenant_uuid'] ?? uuid(), 'domain_uuid' => $domain_uuid,
-			'enabled' => ($_POST['enabled'] ?? '') === 'true', 'paused' => ($_POST['paused'] ?? '') === 'true', 'base_url' => $base_url,
-			'inherit_global_url' => $inherit_global_url, 'inherit_global_credentials' => $inherit_global_credentials,
+			'enabled' => ($_POST['enabled'] ?? '') === 'true' ? 'true' : 'false', 'paused' => ($_POST['paused'] ?? '') === 'true' ? 'true' : 'false', 'base_url' => $base_url,
+			'inherit_global_url' => $inherit_global_url ? 'true' : 'false', 'inherit_global_credentials' => $inherit_global_credentials ? 'true' : 'false',
 			'customer_username' => trim($_POST['customer_username'] ?? ''), 'sip_server' => trim($_POST['sip_server'] ?? ''),
 			'expected_customer_id' => (int) ($_POST['expected_customer_id'] ?? 0),
 			'default_profile_id' => (int) ($_POST['default_profile_id'] ?? 0),
 			'sip_port' => (int) ($_POST['sip_port'] ?? 5061), 'sip_protocol' => $_POST['sip_protocol'] ?? 'tls',
 			'voicemail_code' => trim($_POST['voicemail_code'] ?? '*97'),
 			'deletion_grace_seconds' => max(60, (int) ($_POST['deletion_grace_seconds'] ?? 86400)),
-			'default_extension_sync' => ($_POST['default_extension_sync'] ?? 'true') === 'true',
+			'default_extension_sync' => ($_POST['default_extension_sync'] ?? 'true') === 'true' ? 'true' : 'false',
 			'insert_date' => $tenant['insert_date'] ?? date('c'), 'insert_user' => $tenant['insert_user'] ?? $_SESSION['user_uuid'],
 			'update_date' => date('c'), 'update_user' => $_SESSION['user_uuid'],
 		];
@@ -33,7 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$columns = array_keys($record); $updates = array_values(array_diff($columns, ['tragofone_tenant_uuid', 'insert_date', 'insert_user']));
 		$sql = 'insert into v_tragofone_tenants ('.implode(', ', $columns).') values (:'.implode(', :', $columns).') ';
 		$sql .= 'on conflict (tragofone_tenant_uuid) do update set '.implode(', ', array_map(static fn ($column) => $column.' = excluded.'.$column, $updates));
-		$database->execute($sql, $record); header('Location: tenant_settings.php?saved=1'); exit;
+		if ($database->execute($sql, $record) === false) { throw new RuntimeException('Unable to save tenant settings.'); }
+		header('Location: tenant_settings.php?saved=1'); exit;
 	} catch (Throwable $error) {
 		$error_message = tragofone_redactor::message($error->getMessage());
 		foreach (['enabled','paused','inherit_global_url','inherit_global_credentials','base_url','customer_username','expected_customer_id','default_profile_id','sip_server','sip_port','sip_protocol','voicemail_code','deletion_grace_seconds','default_extension_sync'] as $field) {

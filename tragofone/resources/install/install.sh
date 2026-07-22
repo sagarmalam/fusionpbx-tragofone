@@ -22,6 +22,7 @@ fi
 chown root:www-data /etc/fusionpbx/tragofone.env
 chmod 0640 /etc/fusionpbx/tragofone.env
 php "${FUSIONPBX_ROOT}/core/upgrade/upgrade.php"
+php "${FUSIONPBX_ROOT}/core/upgrade/upgrade.php" -g
 systemctl daemon-reload
 systemctl enable --now tragofone-worker.timer tragofone-reconcile.timer
 echo "Installed. Open Advanced > Tragofone Integration."
