@@ -56,7 +56,7 @@ The overview provides these pages:
 | Jobs | Inspect background operations and retry eligible failures |
 | Reconciliation | Compare FusionPBX state with companion mappings and queue repairs |
 
-Always verify the selected domain before changing settings or extension selection.
+Every module page shows the active domain, a persistent navigation bar, and a **Back to Overview** action. On narrow screens, swipe the navigation bar horizontally if all tabs do not fit. Always verify the selected domain before changing settings or extension selection.
 
 ## Superadmin setup
 
