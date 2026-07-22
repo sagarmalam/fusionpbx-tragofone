@@ -28,3 +28,4 @@
 - Prevent workers from claiming jobs for paused or disabled tenants.
 - Restore FusionPBX group permissions during installation and document the required upgrade pass.
 - Serialize PostgreSQL boolean parameters explicitly and surface failed companion writes instead of silently accepting them.
+- Add a role-based user manual for FusionPBX Superadmins and company administrators.

@@ -19,11 +19,12 @@ No FusionPBX licensed API, remote database access, FusionPBX core patch, or Trag
 
 ## Quick start
 
-See [Installation](docs/installation.md), then [Configuration](docs/configuration.md). The project is an MVP and must be validated against the target FusionPBX and Tragofone versions before production rollout.
+See [Installation](docs/installation.md), then [Configuration](docs/configuration.md). Superadmins and company administrators should use the [User manual](docs/user-manual.md) for daily operation. The project is an MVP and must be validated against the target FusionPBX and Tragofone versions before production rollout.
 
 ## Documentation
 
 - [Architecture](docs/architecture.md)
+- [User manual](docs/user-manual.md)
 - [How it works](docs/how-it-works.md)
 - [Supported features](docs/supported-features.md)
 - [Tragofone API contract](docs/tragofone-api-contract.md)
