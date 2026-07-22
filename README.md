@@ -5,6 +5,7 @@ Private, native FusionPBX application for tenant-aware Tragofone provisioning. I
 ## MVP capabilities
 
 - Per-domain Tragofone credentials with explicit global inheritance
+- Role-aware UI: Superadmins and tenant-scoped admins can open the module; Global Settings remain Superadmin-only
 - Customer identity verification and tenant-isolated tokens
 - SIP user creation and configuration using existing CRUD APIs
 - Per-extension include/exclude controls with a tenant default for newly created extensions

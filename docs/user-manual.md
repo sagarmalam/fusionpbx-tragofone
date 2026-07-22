@@ -15,6 +15,20 @@ It does not synchronize CDRs, IM, SMS/MMS, video, BLF, DND, call forwarding, or 
 
 ## Roles and access
 
+The **Tragofone Integration** menu is visible by default to both the FusionPBX `superadmin` and `admin` groups. It is not visible to ordinary FusionPBX users. The pages shown inside the module depend on the user's Tragofone permissions and FusionPBX domain scope.
+
+| Capability | Superadmin | Company administrator (`admin`) |
+|---|---|---|
+| See **Advanced → Tragofone Integration** | Yes | Yes |
+| Open Global Settings | Yes | No |
+| Select any FusionPBX domain | Yes | No; limited to assigned domain access |
+| Configure Tenant Settings | Yes | Yes, for the active authorized domain |
+| Select extensions | Yes | Yes, for the active authorized domain |
+| View mappings and jobs | Yes | Yes, for the active authorized domain |
+| Retry jobs and run reconciliation | Yes | Yes, for the active authorized domain |
+
+If the intended policy is **Superadmin-only module access**, remove the Tragofone permissions and menu access from the FusionPBX `admin` group. That is a deployment policy change and disables the Company administrator workflow described in this manual.
+
 ### FusionPBX Superadmin
 
 A Superadmin can:
@@ -44,6 +58,8 @@ Global defaults are not visible to the Company administrator. FusionPBX domain a
 1. Sign in to FusionPBX.
 2. Confirm the correct company domain is selected in the domain selector at the top of the page.
 3. Open **Advanced → Tragofone Integration**.
+
+Both Superadmins and authorized Company administrators can see this menu. A Company administrator will not see the **Global** navigation item.
 
 The overview provides these pages:
 

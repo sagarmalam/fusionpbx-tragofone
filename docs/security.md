@@ -6,6 +6,7 @@
 - Verify customer identity after login and isolate tokens by `domain_uuid`.
 - Reauthenticate an authenticated request once after `401`; if authentication still fails, pause only that tenant.
 - Enforce FusionPBX permission and domain scope on every UI/action.
+- Grant module-menu access to `superadmin` and tenant-scoped `admin` by default; grant global configuration permissions only to `superadmin`. Ordinary users receive no Tragofone permissions. Deployments that require Superadmin-only operation must remove the Tragofone permissions and menu access from the `admin` group.
 - Redact tokens, passwords, SIP passwords, and secrets from logs and errors.
 - Expose no generic SQL, proxy, callback, or arbitrary URL-fetch endpoint.
 - Run workers as `www-data` with systemd hardening and limited writable paths.

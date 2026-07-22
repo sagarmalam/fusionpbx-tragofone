@@ -31,3 +31,4 @@
 - Add a role-based user manual for FusionPBX Superadmins and company administrators.
 - Redesign Global Settings with dedicated credential, endpoint, fallback, and inheritance guidance sections.
 - Add consistent responsive module navigation and modernize Overview, Mappings, Jobs, and Reconciliation pages.
+- Clarify default Superadmin versus tenant-admin menu visibility and permissions throughout the operator documentation.
