@@ -2,7 +2,7 @@
 
 Each FusionPBX domain maps to exactly one Tragofone customer. Enter the HTTPS base URL, company-admin username/password, expected Tragofone customer ID, default profile ID, SIP server/port/protocol, optional outbound proxy, and voicemail code (`*97` by default). Authentication is accepted only when `/api/customer/me` returns the configured customer ID.
 
-Global URL/credentials are optional. Set **Inherit global URL** and **Inherit global credentials** independently for each domain. A domain inherits a value only when the corresponding switch is `True`; silent fallback is prohibited. The expected customer ID remains tenant-specific and is always verified after login.
+Global URL/credentials are optional. A Superadmin configures them under **Advanced → Tragofone Integration → Global Settings**, in the **Global API Endpoint** and **Global Tragofone Credentials** sections. Set **Inherit global URL** and **Inherit global credentials** independently in each domain's Tenant Settings. A domain inherits a value only when the corresponding choice is enabled; silent fallback is prohibited. Use shared credentials only for domains mapped to the same Tragofone customer. The expected customer ID remains tenant-specific and is always verified after login.
 
 **Paused** stops scanning only for the selected domain. The worker automatically sets it after a `401` or customer-identity mismatch; correct the credentials/identity and explicitly change **Paused** to `False` to resume. **Deletion grace (seconds)** defaults to `86400` (24 hours), with a minimum of 60 seconds.
 

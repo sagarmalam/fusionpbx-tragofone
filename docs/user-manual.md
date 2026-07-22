@@ -62,9 +62,9 @@ Always verify the selected domain before changing settings or extension selectio
 
 ### 1. Configure optional global defaults
 
-Open **Global Settings** if multiple domains will share values. Configure the Tragofone server URL, optional company-admin credentials, default profile, SIP port and protocol, and voicemail code.
+Open **Advanced → Tragofone Integration → Global Settings** if multiple domains will share values. Configure the Tragofone server URL and the optional company-admin username/password in the clearly labeled **Global Tragofone Credentials** section. SIP port, protocol, and voicemail code are available as provisioning fallbacks.
 
-Global values do not apply automatically. Each tenant must explicitly choose **Inherit global URL** and/or **Inherit global credentials**. This prevents one tenant from silently receiving another tenant's credentials.
+Global values do not apply automatically. Each tenant must explicitly choose **Inherit global URL** and/or **Inherit global credentials** in **Tenant Settings**. Use global credentials only for tenants mapped to the same Tragofone customer; the tenant-specific expected customer ID is still verified. This prevents a tenant from silently receiving or using the wrong credentials.
 
 Skip global settings when every company uses its own Tragofone URL and credentials.
 
