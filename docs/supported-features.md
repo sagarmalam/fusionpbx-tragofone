@@ -3,9 +3,14 @@
 | Feature | Status |
 |---|---|
 | SIP credentials | Supported in MVP |
+| Tragofone application password | Same as the current FusionPBX SIP password |
+| Application username after extension renumber | Immutable; SIP identity and displayed extension update |
+| SIP server/transport/outbound proxy | Supported per tenant with deterministic proxy fallback |
+| Tragofone account name | Synchronized from FusionPBX Effective Caller ID Name |
 | Per-extension SIP user selection | Supported; tenant default plus explicit include/exclude |
 | Audio calling/dialpad | Supported through client configuration |
-| Multiple direct DID caller IDs | Supported in MVP |
+| Effective outbound caller ID | Supported and trusted from the FusionPBX extension |
+| Multiple direct DID caller IDs | Supported as additional caller-ID choices |
 | DID assignment mapping/visibility | Supported in MVP |
 | One-touch FusionPBX voicemail | Supported; default `*97` |
 | Local client call history | Supported by existing client; no data sync |
@@ -23,4 +28,4 @@
 
 Operational controls include tenant pause/resume, per-extension selection, manual reconciliation, failed-job retry, deletion grace, one-time `401` reauthentication, and expired-lock recovery.
 
-The integration synchronizes only SIP registration data, supported enterprise contacts, and direct DID caller IDs. Call history remains local to the softphone.
+The integration synchronizes only SIP/application credentials, supported enterprise contacts, Effective Outbound Caller ID, and direct DID caller IDs. Call history remains local to the softphone.

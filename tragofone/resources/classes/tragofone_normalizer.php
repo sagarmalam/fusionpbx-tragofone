@@ -20,6 +20,14 @@ final class tragofone_normalizer {
 		return self::username($extension.'.'.$suffix, $domain);
 	}
 
+	public static function application_password(string $sip_password): string {
+		if ($sip_password === '') { throw new InvalidArgumentException('FusionPBX SIP password cannot be empty.'); }
+		if (mb_strlen($sip_password) > 20) {
+			throw new InvalidArgumentException('FusionPBX SIP password exceeds the Tragofone 20-character application-password limit.');
+		}
+		return $sip_password;
+	}
+
 	public static function phone(?string $number): ?string {
 		if ($number === null || trim($number) === '') { return null; }
 		$number = trim($number);

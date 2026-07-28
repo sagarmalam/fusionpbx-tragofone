@@ -2,7 +2,7 @@
 
 final class tragofone_did_resolver {
 	/** @return list<string> */
-	public static function direct_dids(string $extension, array $destinations, ?string $effective_caller_id = null): array {
+	public static function direct_dids(string $extension, array $destinations): array {
 		$dids = [];
 		foreach ($destinations as $destination) {
 			$assignment = self::direct_assignment($destination);
@@ -10,8 +10,14 @@ final class tragofone_did_resolver {
 		}
 		$dids = array_keys($dids);
 		sort($dids, SORT_NATURAL);
+		return $dids;
+	}
+
+	/** @return list<string> */
+	public static function caller_ids(string $extension, array $destinations, ?string $effective_caller_id = null): array {
+		$dids = self::direct_dids($extension, $destinations);
 		$preferred = tragofone_normalizer::phone($effective_caller_id);
-		if ($preferred !== null && in_array($preferred, $dids, true)) {
+		if ($preferred !== null) {
 			$dids = array_values(array_diff($dids, [$preferred])); array_unshift($dids, $preferred);
 		}
 		return $dids;

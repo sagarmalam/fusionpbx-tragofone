@@ -1,6 +1,6 @@
 # Validation matrix
 
-The MVP was validated on 2026-07-22 against a private FusionPBX test domain and a disposable Tragofone company. Test credentials, tokens, SIP passwords, and encryption material are not stored in this repository.
+The original MVP baseline through commit `376fbd4` was validated on 2026-07-22 against a private FusionPBX test domain and a disposable Tragofone company. Test credentials, tokens, SIP passwords, and encryption material are not stored in this repository.
 
 | Area | Cases | Result |
 |---|---|---|
@@ -20,3 +20,15 @@ The MVP was validated on 2026-07-22 against a private FusionPBX test domain and 
 | Security | TLS verification, redaction, encrypted credential storage, tenant-scoped actions, no repository secrets | Passed |
 
 The test leaves two active extensions, two active direct DID mappings, and one synchronized phonebook contact for administrator inspection. Disposable user/contact records were deleted from Tragofone and remain only as companion tombstones for auditability.
+
+## 2026-07-28 issue regression validation
+
+| Issue | Automated/contract validation | Live status |
+|---|---|---|
+| #3 shared application/SIP password | Create and update payload tests; 20-character boundary tests; current OpenAPI user-update contract | Awaiting deployment to the disposable PBX |
+| #4 outbound proxy | Default and explicit proxy payload tests; tenant-policy change detection | Awaiting deployment to the disposable PBX |
+| #5 Effective Outbound Caller ID | Normalization, priority, de-duplication, and no-direct-route tests | Awaiting deployment to the disposable PBX |
+| #6 account name | User-update payload and mapping-state tests against `usr_account_name` contract | Awaiting deployment to the disposable PBX |
+| #7 extension renumbering | Immutable username/user ID plus updated SIP identity and mapping display tests; OpenAPI confirms `usr_username` is not updateable | Awaiting deployment to the disposable PBX |
+
+The live server remained reachable over HTTPS during this regression pass, but its SSH port was filtered from the test runner, so the updated build could not yet be installed there. Do not interpret automated success as completion of the live rows above.

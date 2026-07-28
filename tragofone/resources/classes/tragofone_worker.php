@@ -44,11 +44,12 @@ final class tragofone_worker {
 			$this->store->save_extension_mapping($mapping); $this->store->delete_snapshot($job['domain_uuid'], 'extension', $job['entity_uuid']); return;
 		}
 		$extension = $payload['extension'];
+		$application_password = null;
 		if ($job['operation'] === 'create_user') {
+			$application_password = tragofone_normalizer::application_password((string) ($extension['password'] ?? ''));
 			$username = tragofone_normalizer::username($extension['extension'], $extension['domain_name']);
 			$result = $client->create_user([
-				// The existing Tragofone API accepts a maximum 20-character application password.
-				'usr_username' => $username, 'usr_password' => bin2hex(random_bytes(8)),
+				'usr_username' => $username, 'usr_password' => $application_password,
 				'usr_account_name' => $extension['effective_caller_id_name'] ?: $extension['extension'],
 				'profile_id' => $tenant['default_profile_id'] ?? null, 'send_qr_code' => 'N',
 			]);
@@ -72,14 +73,25 @@ final class tragofone_worker {
 			$mapping['record_hash'] = $job['record_hash']; $mapping['sync_status'] = 'excluded'; $mapping['last_operation'] = 'exclude_user';
 			$mapping['delete_after'] = null; $mapping['last_synced_at'] = gmdate('c'); $mapping['update_date'] = gmdate('c'); $this->store->save_extension_mapping($mapping); return;
 		}
+		if ($application_password === null) {
+			$application_password = tragofone_normalizer::application_password((string) ($extension['password'] ?? ''));
+		}
+		$user_update = [
+			'user_id' => (int) $mapping['tragofone_user_id'],
+			'usr_password' => $application_password,
+			'usr_account_name' => $extension['effective_caller_id_name'] ?: $extension['extension'],
+		];
+		if (!empty($tenant['default_profile_id'])) { $user_update['profile_id'] = (int) $tenant['default_profile_id']; }
 		if (in_array($job['operation'], ['enable_user', 'include_user'], true)) {
-			$client->update_user(['user_id' => (int) $mapping['tragofone_user_id'], 'usr_status' => 'Y']);
+			$user_update['usr_status'] = 'Y';
 			$mapping['delete_after'] = null; $mapping['deleted_at'] = null;
 		}
+		if ($job['operation'] !== 'create_user') { $client->update_user($user_update); }
 		$configuration = tragofone_feature_policy::configuration($extension, $tenant, $payload['dids'] ?? []);
 		$client->update_configuration((int) $mapping['tragofone_user_id'], $configuration);
 		$enabled = tragofone_normalizer::boolean($extension['enabled'] ?? false);
 		if (!$enabled) { $client->update_user(['user_id' => (int) $mapping['tragofone_user_id'], 'usr_status' => 'N']); }
+		$mapping['extension'] = (string) $extension['extension'];
 		$mapping['profile_id'] = $tenant['default_profile_id'] ?? $mapping['profile_id'] ?? null;
 		$mapping['record_hash'] = $job['record_hash']; $mapping['sync_status'] = $enabled ? 'synchronized' : 'disabled'; $mapping['last_operation'] = $job['operation']; $mapping['last_synced_at'] = gmdate('c'); $mapping['update_date'] = gmdate('c');
 		$this->store->save_extension_mapping($mapping);

@@ -23,4 +23,8 @@ Company-admin enterprise-directory calls:
 
 Tokens are isolated by tenant. `/customer/me` must match the configured customer ID. The validated enterprise-directory endpoints use the same customer bearer token, so contact synchronization does not require an app-user login.
 
-The tested customer login response uses a top-level `access_token`; the client also accepts the older `token` and nested token envelopes. `update-configurations` accepts one flat `configurations` object even though `get-configurations` returns values grouped into sections such as `Sip`, `Call`, `IM`, and `cloudcontacts`. The client flattens the policy at the wire boundary. User creation and configuration remain separate calls, and the generated Tragofone application password is limited to 16 characters to remain within the API's 20-character maximum.
+The tested customer login response uses a top-level `access_token`; the client also accepts the older `token` and nested token envelopes. `update-configurations` accepts one flat `configurations` object even though `get-configurations` returns values grouped into sections such as `Sip`, `Call`, `IM`, and `cloudcontacts`. The client flattens the policy at the wire boundary. User creation and configuration remain separate calls.
+
+The current FusionPBX SIP password is sent as `usr_password` on user creation/update and as `sip_auth_password` in SIP configuration. The API's 20-character application-password maximum is enforced before sending. Account-name changes use `user/update` with `user_id` and `usr_account_name`.
+
+The documented user-update request supports password, account name, status, profile, email, and phone fields, but not `usr_username`. Consequently, the application username is immutable; extension renumbering updates SIP configuration and the local mapping while retaining the existing Tragofone login and `usr_id`.

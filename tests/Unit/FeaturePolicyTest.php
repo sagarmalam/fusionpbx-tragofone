@@ -10,6 +10,8 @@ final class FeaturePolicyTest extends TestCase {
 		);
 		self::assertSame('1001', $config['Sip']['sip_auth_username']);
 		self::assertSame('+14155550100,+14155550101', $config['Sip']['sip_callerid']);
+		self::assertSame('pbx.test', $config['Sip']['sip_auth_outboundProxyServer']);
+		self::assertSame('5061', $config['Sip']['sip_auth_outboundProxyPort']);
 		self::assertSame('*97', $config['Call']['call_onetouch_voicemailNumber']);
 		self::assertSame('FALSE', $config['IM']['im_status']);
 		self::assertSame('FALSE', $config['Sms']['sms_status']);
@@ -20,7 +22,21 @@ final class FeaturePolicyTest extends TestCase {
 		self::assertSame('FALSE', $config['zoom']['zoom_status']);
 	}
 
-	public function test_does_not_invent_a_caller_id_without_a_direct_did(): void {
+	public function test_uses_explicit_outbound_proxy_when_configured(): void {
+		$config = tragofone_feature_policy::configuration(
+			['extension' => '1001', 'password' => 'secret', 'domain_name' => 'pbx.test'],
+			[
+				'sip_server' => 'sip.pbx.test', 'sip_port' => 5061, 'sip_protocol' => 'tls',
+				'outbound_proxy_server' => 'proxy.pbx.test', 'outbound_proxy_port' => 5081,
+				'voicemail_code' => '*97',
+			],
+			[]
+		);
+		self::assertSame('proxy.pbx.test', $config['Sip']['sip_auth_outboundProxyServer']);
+		self::assertSame('5081', $config['Sip']['sip_auth_outboundProxyPort']);
+	}
+
+	public function test_clears_caller_id_when_resolver_supplies_none(): void {
 		$config = tragofone_feature_policy::configuration(
 			['extension' => '1001', 'password' => 'secret', 'domain_name' => 'pbx.test', 'effective_caller_id_number' => '+14155559999'],
 			['sip_server' => '', 'sip_port' => 5061, 'sip_protocol' => 'tls', 'voicemail_code' => '*97'],

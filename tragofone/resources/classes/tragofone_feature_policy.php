@@ -2,16 +2,23 @@
 
 final class tragofone_feature_policy {
 	public static function configuration(array $extension, array $tenant, array $dids): array {
+		$sip_server = trim((string) ($tenant['sip_server'] ?? ''));
+		if ($sip_server === '') { $sip_server = (string) $extension['domain_name']; }
+		$sip_port = (string) ($tenant['sip_port'] ?? 5061);
+		$outbound_proxy_server = trim((string) ($tenant['outbound_proxy_server'] ?? ''));
+		if ($outbound_proxy_server === '') { $outbound_proxy_server = $sip_server; }
+		$outbound_proxy_port = trim((string) ($tenant['outbound_proxy_port'] ?? ''));
+		if ($outbound_proxy_port === '' || $outbound_proxy_port === '0') { $outbound_proxy_port = $sip_port; }
 		return [
 			'Sip' => [
 				'sip_auth_username' => (string) $extension['extension'], 'sip_authid' => (string) $extension['extension'],
 				'sip_auth_password' => (string) $extension['password'],
-				'sip_auth_sipServer' => (string) ($tenant['sip_server'] ?: $extension['domain_name']),
-				'sip_auth_sipPort' => (string) $tenant['sip_port'], 'sip_auth_sipProtocol' => $tenant['sip_protocol'],
-				'sip_auth_outboundProxyServer' => (string) ($tenant['outbound_proxy_server'] ?? ''),
-				'sip_auth_outboundProxyPort' => (string) ($tenant['outbound_proxy_port'] ?? ''),
-				// Caller IDs are authoritative only when a direct FusionPBX DID route was resolved.
-				// An extension number or an unassigned outbound caller ID must never be presented as a DID.
+				'sip_auth_sipServer' => $sip_server,
+				'sip_auth_sipPort' => $sip_port, 'sip_auth_sipProtocol' => $tenant['sip_protocol'],
+				'sip_auth_outboundProxyServer' => $outbound_proxy_server,
+				'sip_auth_outboundProxyPort' => $outbound_proxy_port,
+				// The scanner places the trusted Effective Outbound Caller ID first,
+				// followed by normalized direct-DID choices.
 				'sip_extension' => (string) $extension['extension'], 'sip_callerid' => implode(',', $dids),
 				'sip_register_interval' => '3600', 'sip_register_respectServerExpires' => 'TRUE',
 			],

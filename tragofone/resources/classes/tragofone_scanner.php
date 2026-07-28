@@ -15,8 +15,12 @@ final class tragofone_scanner {
 			$extension_uuid = $extension['extension_uuid']; $seen_extensions[$extension_uuid] = true;
 			$sync_enabled = $extension_policies[$extension_uuid] ?? $default_extension_sync;
 			if ($sync_enabled) { $extension_numbers[(string) $extension['extension']] = $extension_uuid; }
-			$dids = tragofone_did_resolver::direct_dids((string) $extension['extension'], $destinations, $extension['effective_caller_id_number'] ?? null);
-			$source = ['extension' => $extension, 'dids' => $dids, 'sync_enabled' => $sync_enabled, 'policy_version' => 4];
+			$dids = tragofone_did_resolver::caller_ids((string) $extension['extension'], $destinations, $extension['effective_caller_id_number'] ?? null);
+			$tenant_policy = array_intersect_key($tenant, array_flip([
+				'default_profile_id', 'sip_server', 'sip_port', 'sip_protocol',
+				'outbound_proxy_server', 'outbound_proxy_port', 'voicemail_code',
+			]));
+			$source = ['extension' => $extension, 'dids' => $dids, 'sync_enabled' => $sync_enabled, 'tenant_policy' => $tenant_policy, 'policy_version' => 5];
 			$hash = tragofone_normalizer::hash($source);
 			$previous = $this->store->snapshot($domain_uuid, 'extension', $extension_uuid);
 			$mapping = $this->store->extension_mapping($domain_uuid, $extension_uuid);

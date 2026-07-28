@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Fix tenant outbound-proxy provisioning by exposing its server/port settings, defaulting blank proxy values to the resolved SIP endpoint, and including tenant SIP policy in extension change detection (#4).
+- Synchronize Effective Caller ID Name changes to the mapped Tragofone account name while keeping the mapping's current FusionPBX extension number accurate (#6).
+- Reuse the FusionPBX SIP password for Tragofone application login and rotate both through the existing user/configuration APIs (#3).
+- Trust Effective Outbound Caller ID as the primary caller-ID choice and retain direct DIDs as additional choices (#5).
+- Keep Tragofone application usernames and user IDs immutable across FusionPBX extension renumbering while updating SIP identity and mapping display values (#7).
 - Document the explicit FusionPBX 5.5 and PHP compatibility matrix, required extensions, verified Debian/PostgreSQL baseline, complete installation validation, and oneshot service behavior.
 - Add FusionPBX 5.5-compatible installation detection and installer preflight checks, and honor custom PHP binary, FusionPBX root, runtime user, and runtime group values in generated systemd services.
 - Declare runtime PHP extensions in Composer metadata and syntax-check the installer in CI.

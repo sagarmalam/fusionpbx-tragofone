@@ -16,12 +16,12 @@ $tragofone_page = 'mappings'; $tragofone_title = 'Mappings';
 $tragofone_subtitle = 'Companion-owned links between FusionPBX entities and Tragofone records.';
 ?>
 <style>
-.tm-grid{display:grid;gap:16px}.tm-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.tm-error{display:block;color:#b42318;font-size:11px;margin-top:4px;max-width:330px}.tm-muted{color:#667085;font-size:12px}
+.tm-grid{display:grid;gap:16px}.tm-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.tm-error{display:block;color:#b42318;font-size:11px;margin-top:4px;max-width:330px}.tm-muted{color:#667085;font-size:12px}.tm-note{padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e4e7ec;color:#475467;font-size:13px}.tm-note b{color:#344054}
 </style>
 <div class="tfn-shell">
 	<?php require __DIR__.'/resources/views/navigation.php'; ?>
 	<div class="tm-grid">
-		<section class="tfn-card"><div class="tfn-card-title">Extensions <span class="tfn-badge off"><?= count($extensions) ?></span></div><div class="tfn-table-wrap"><table class="tfn-table"><thead><tr><th>Extension</th><th>Tragofone username</th><th>User ID</th><th>Status</th><th>Last synchronized</th></tr></thead><tbody>
+		<section class="tfn-card"><div class="tfn-card-title">Extensions <span class="tfn-badge off"><?= count($extensions) ?></span></div><div class="tm-note"><b>Login password:</b> the current FusionPBX SIP password. Password values are never displayed on this page or written to logs.</div><div class="tfn-table-wrap"><table class="tfn-table"><thead><tr><th>Extension</th><th>Tragofone username</th><th>User ID</th><th>Status</th><th>Last synchronized</th></tr></thead><tbody>
 		<?php foreach ($extensions as $mapping) { ?><tr><td><b><?= escape($mapping['extension']) ?></b></td><td><?= escape($mapping['tragofone_username'] ?: '—') ?></td><td class="tm-id"><?= escape($mapping['tragofone_user_id'] ?: '—') ?></td><td><span class="tfn-badge <?= $badge_class($mapping['sync_status'] ?? null) ?>"><?= escape($mapping['sync_status'] ?: 'unknown') ?></span><?php if (!empty($mapping['last_error'])) { ?><span class="tm-error"><?= escape($mapping['last_error']) ?></span><?php } ?></td><td class="tm-muted"><?= escape($mapping['last_synced_at'] ?: '—') ?></td></tr><?php } ?>
 		<?php if ($extensions === []) { ?><tr><td colspan="5"><div class="tfn-empty">No extension mappings exist for this domain.</div></td></tr><?php } ?>
 		</tbody></table></div></section>

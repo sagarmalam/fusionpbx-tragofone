@@ -118,6 +118,7 @@ Never reuse credentials for a different Tragofone company. Customer-ID verificat
 
 - **SIP server:** Enter the SIP registration server. When blank, the integration uses the FusionPBX domain.
 - **SIP port and transport:** Select the registration port and TLS, TCP, or UDP transport.
+- **Outbound proxy server and port:** Enter explicit proxy values when required. When either field is blank, the module sends the resolved SIP server or SIP port for that field.
 - **Voicemail code:** Enter the FusionPBX voicemail feature code, normally `*97`.
 
 #### Lifecycle & Safety
@@ -181,18 +182,20 @@ This disables the mapped Tragofone user without deleting it. Re-select the exten
 
 ### Rotate SIP credentials
 
-Change the extension password in FusionPBX. The scanner detects the updated extension and queues a SIP configuration update. Confirm completion on **Jobs** or **Mappings**. Do not edit the Tragofone SIP configuration independently because FusionPBX is the source of truth.
+The Tragofone application login uses `{original-extension}@{domain}` as its username and the current FusionPBX SIP password as its password. Change the extension password in FusionPBX to rotate both the Tragofone application-login password and SIP authentication password. The scanner detects the update and queues both existing API changes. Confirm completion on **Jobs** or **Mappings**. Do not edit either password independently in Tragofone because FusionPBX is the source of truth.
 
-### Assign or remove a DID
+The Tragofone application username remains unchanged when an extension is renumbered. For example, renumbering `201` to `2001` keeps the login `201@company.example` and the same Tragofone user ID, but updates the SIP username, authentication ID, SIP extension, account name, and displayed FusionPBX extension to the current values.
 
-Configure an enabled, voice-capable inbound destination that routes directly and unambiguously to one extension. On the next scan:
+### Manage outbound caller ID and direct DIDs
 
-- Every eligible direct DID becomes a caller-ID choice for that synchronized extension.
-- A DID matching the extension's effective outbound caller ID is ordered first.
+Set the extension's Effective Outbound Caller ID and, when required, configure enabled voice-capable inbound destinations that route directly and unambiguously to the extension. On the next scan:
+
+- The extension's Effective Outbound Caller ID is trusted and becomes the first caller-ID choice.
+- Every eligible direct DID becomes an additional caller-ID choice.
 - Removing or disabling the direct route removes that DID.
-- Removing the final direct DID clears the user's public caller-ID list.
+- Removing the final direct DID leaves the effective outbound value in place. The list is cleared only when that value is also blank.
 
-IVRs, queues, ring groups, time conditions, external routes, and ambiguous action chains are intentionally ignored. See [DID caller-ID synchronization](did-caller-id.md).
+IVRs, queues, ring groups, time conditions, external routes, and ambiguous action chains are ignored for direct-DID mappings. They do not prevent the explicitly configured Effective Outbound Caller ID from synchronizing. See [Caller-ID synchronization](did-caller-id.md).
 
 ### Manage the company phonebook
 

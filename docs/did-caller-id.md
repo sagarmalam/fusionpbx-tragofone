@@ -1,7 +1,9 @@
-# DID caller-ID synchronization
+# Caller-ID synchronization
 
-The resolver reads enabled voice inbound destinations from the tenant. It accepts exactly one action whose application is `transfer` or `extension` and whose target is the synchronized extension. IVRs, ring groups, queues, time conditions, external targets, and multiple/ambiguous actions are ignored.
+The extension's normalized FusionPBX **Effective Outbound Caller ID** is trusted as the primary Tragofone caller ID, whether or not it has a direct inbound route. Administrators are responsible for ensuring that FusionPBX permits the tenant and extension to present that number.
 
-Numbers are normalized while preserving a leading `+`, de-duplicated, and naturally sorted. If the extension's effective outbound caller ID matches a DID, it is moved first; otherwise the first sorted DID is the default. The complete list is written to `sip_callerid` as a comma-separated value.
+The resolver also reads enabled voice inbound destinations from the tenant. It accepts exactly one action whose application is `transfer` or `extension` and whose target is the synchronized extension. IVRs, ring groups, queues, time conditions, external targets, and multiple/ambiguous actions do not create direct-DID mappings.
 
-Disabling or deleting a direct route removes that DID on the next scan. When the last direct DID is removed, `sip_callerid` is cleared. The companion never substitutes the extension number or an outbound caller ID that is not backed by a direct, enabled DID route.
+Numbers are normalized while preserving a leading `+`, de-duplicated, and naturally sorted. The effective outbound caller ID is placed first, followed by the extension's direct DIDs. The complete list is written to `sip_callerid` as a comma-separated value.
+
+Disabling or deleting a direct route removes that DID on the next scan. If an Effective Outbound Caller ID remains, it remains available; `sip_callerid` is cleared only when the effective value is blank and no direct DID remains.

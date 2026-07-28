@@ -19,4 +19,14 @@ final class NormalizerTest extends TestCase {
 		self::assertTrue(tragofone_normalizer::boolean('true'));
 		self::assertFalse(tragofone_normalizer::boolean('false'));
 	}
+	public function test_application_password_reuses_sip_password_with_api_limit(): void {
+		$password = 'Abc123!@#4567890xyZ';
+		self::assertSame($password, tragofone_normalizer::application_password($password));
+		$this->expectException(InvalidArgumentException::class);
+		tragofone_normalizer::application_password(str_repeat('x', 21));
+	}
+	public function test_application_password_rejects_empty_sip_password(): void {
+		$this->expectException(InvalidArgumentException::class);
+		tragofone_normalizer::application_password('');
+	}
 }

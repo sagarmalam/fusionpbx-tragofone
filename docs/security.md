@@ -8,6 +8,8 @@
 - Enforce FusionPBX permission and domain scope on every UI/action.
 - Grant module-menu access to `superadmin` and tenant-scoped `admin` by default; grant global configuration permissions only to `superadmin`. Ordinary users receive no Tragofone permissions. Deployments that require Superadmin-only operation must remove the Tragofone permissions and menu access from the `admin` group.
 - Redact tokens, passwords, SIP passwords, and secrets from logs and errors.
+- By deployment policy, the Tragofone application-login password is the FusionPBX SIP password. Treat it as one shared credential: restrict extension-password visibility and rotate both by changing the FusionPBX extension password.
+- Effective Outbound Caller ID is trusted from FusionPBX without validating a direct inbound route. Enforce caller-ID ownership and anti-spoofing controls in FusionPBX and the upstream carrier.
 - Expose no generic SQL, proxy, callback, or arbitrary URL-fetch endpoint.
 - Run workers as `www-data` with systemd hardening and limited writable paths.
 - Never delete a Tragofone user/contact without a companion-owned immutable-ID mapping and confirmed source deletion.

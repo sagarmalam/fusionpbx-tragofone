@@ -15,6 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		if (!$inherit_global_url) { $base_url = tragofone_url_validator::validate($base_url); }
 		if (!$inherit_global_credentials && trim($_POST['customer_username'] ?? '') === '') { throw new InvalidArgumentException('Company admin username is required unless global credentials are inherited.'); }
 		if (!$inherit_global_credentials && empty($_POST['customer_password']) && empty($tenant['encrypted_customer_password'])) { throw new InvalidArgumentException('Company admin password is required unless global credentials are inherited.'); }
+		$outbound_proxy_port = trim((string) ($_POST['outbound_proxy_port'] ?? ''));
+		if ($outbound_proxy_port !== '' && ((int) $outbound_proxy_port < 1 || (int) $outbound_proxy_port > 65535)) {
+			throw new InvalidArgumentException('Outbound proxy port must be between 1 and 65535.');
+		}
 		$record = [
 			'tragofone_tenant_uuid' => $tenant['tragofone_tenant_uuid'] ?? uuid(), 'domain_uuid' => $domain_uuid,
 			'enabled' => ($_POST['enabled'] ?? '') === 'true' ? 'true' : 'false', 'paused' => ($_POST['paused'] ?? '') === 'true' ? 'true' : 'false', 'base_url' => $base_url,
@@ -23,6 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			'expected_customer_id' => (int) ($_POST['expected_customer_id'] ?? 0),
 			'default_profile_id' => (int) ($_POST['default_profile_id'] ?? 0),
 			'sip_port' => (int) ($_POST['sip_port'] ?? 5061), 'sip_protocol' => $_POST['sip_protocol'] ?? 'tls',
+			'outbound_proxy_server' => trim($_POST['outbound_proxy_server'] ?? ''),
+			'outbound_proxy_port' => $outbound_proxy_port === '' ? null : (int) $outbound_proxy_port,
 			'voicemail_code' => trim($_POST['voicemail_code'] ?? '*97'),
 			'deletion_grace_seconds' => max(60, (int) ($_POST['deletion_grace_seconds'] ?? 86400)),
 			'default_extension_sync' => ($_POST['default_extension_sync'] ?? 'true') === 'true' ? 'true' : 'false',
@@ -37,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		header('Location: tenant_settings.php?saved=1'); exit;
 	} catch (Throwable $error) {
 		$error_message = tragofone_redactor::message($error->getMessage());
-		foreach (['enabled','paused','inherit_global_url','inherit_global_credentials','base_url','customer_username','expected_customer_id','default_profile_id','sip_server','sip_port','sip_protocol','voicemail_code','deletion_grace_seconds','default_extension_sync'] as $field) {
+		foreach (['enabled','paused','inherit_global_url','inherit_global_credentials','base_url','customer_username','expected_customer_id','default_profile_id','sip_server','sip_port','sip_protocol','outbound_proxy_server','outbound_proxy_port','voicemail_code','deletion_grace_seconds','default_extension_sync'] as $field) {
 			if (array_key_exists($field, $_POST)) { $tenant[$field] = $_POST[$field]; }
 		}
 	}
@@ -80,6 +86,8 @@ $tragofone_subtitle = 'Configure Tragofone provisioning for '.($_SESSION['domain
 			<div class="tf-field"><div class="tf-label">SIP server<span class="tf-help">Defaults to the FusionPBX domain when blank.</span></div><input class="formfld" name="sip_server" value="<?= escape($tenant['sip_server'] ?? '') ?>"></div>
 			<div class="tf-field"><div class="tf-label">SIP port</div><input class="formfld" type="number" min="1" max="65535" name="sip_port" value="<?= escape($tenant['sip_port'] ?? '5061') ?>"></div>
 			<div class="tf-field"><div class="tf-label">Transport</div><select class="formfld" name="sip_protocol"><?php foreach (['tls'=>'TLS','tcp'=>'TCP','udp'=>'UDP'] as $value=>$label) { ?><option value="<?= $value ?>" <?= ($tenant['sip_protocol'] ?? 'tls') === $value ? 'selected' : '' ?>><?= $label ?></option><?php } ?></select></div>
+			<div class="tf-field"><div class="tf-label">Outbound proxy server<span class="tf-help">Optional. When blank, the resolved SIP server is sent to Tragofone.</span></div><input class="formfld" name="outbound_proxy_server" value="<?= escape($tenant['outbound_proxy_server'] ?? '') ?>" placeholder="Defaults to SIP server"></div>
+			<div class="tf-field"><div class="tf-label">Outbound proxy port<span class="tf-help">Optional. When blank, the SIP port is sent to Tragofone.</span></div><input class="formfld" type="number" min="1" max="65535" name="outbound_proxy_port" value="<?= escape($tenant['outbound_proxy_port'] ?? '') ?>" placeholder="Defaults to SIP port"></div>
 			<div class="tf-field"><div class="tf-label">Voicemail code<span class="tf-help">Used for one-touch FusionPBX voicemail.</span></div><input class="formfld" name="voicemail_code" value="<?= escape($tenant['voicemail_code'] ?? '*97') ?>"></div>
 		</div></section>
 		<section class="tf-card"><div class="tf-card-title"><span class="tf-icon">⌛</span>Lifecycle &amp; Safety</div><div class="tf-card-body">

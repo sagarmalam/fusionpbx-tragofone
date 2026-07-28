@@ -123,7 +123,7 @@ final class ExtensionLifecycleTest extends TestCase {
 
 	public function test_same_uuid_returning_during_grace_is_reenabled_even_when_hash_is_unchanged(): void {
 		$store = new extension_lifecycle_store(); $store->extension_map['ext-1'] = $this->mapping('ext-1', 'deletion_pending'); $store->extensions = [$this->extension('ext-1', true)];
-		$hash = tragofone_normalizer::hash(['extension'=>$store->extensions[0], 'dids'=>[], 'sync_enabled'=>true, 'policy_version'=>4]);
+		$hash = tragofone_normalizer::hash(['extension'=>$store->extensions[0], 'dids'=>['1001'], 'sync_enabled'=>true, 'tenant_policy'=>[], 'policy_version'=>5]);
 		$store->snapshots['extension:ext-1'] = ['snapshot_uuid'=>'snapshot-1','record_hash'=>$hash];
 		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1'], null));
 		self::assertSame('enable_user', $store->jobs[0]['operation']);
@@ -136,6 +136,23 @@ final class ExtensionLifecycleTest extends TestCase {
 		$store->snapshots = []; $store->sync_policies = [['extension_uuid'=>'ext-1','sync_enabled'=>true]];
 		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1','default_extension_sync'=>false], null));
 		self::assertSame('create_user', $store->jobs[0]['operation']);
+	}
+
+	public function test_tenant_sip_policy_change_queues_configuration_update(): void {
+		$store = new extension_lifecycle_store();
+		$store->extensions = [$this->extension()];
+		$store->extension_map['ext-1'] = $this->mapping();
+		$tenant = [
+			'domain_uuid'=>'domain-1', 'default_profile_id'=>1, 'sip_server'=>'pbx.test',
+			'sip_port'=>5061, 'sip_protocol'=>'tls', 'voicemail_code'=>'*97',
+		];
+		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant($tenant, null));
+		$store->jobs = [];
+		self::assertSame(0, (new tragofone_scanner($store))->scan_tenant($tenant, null));
+		$tenant['outbound_proxy_server'] = 'proxy.pbx.test';
+		$tenant['outbound_proxy_port'] = 5081;
+		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant($tenant, null));
+		self::assertSame('update_sip_configuration', $store->jobs[0]['operation']);
 	}
 
 	public function test_exclusion_disables_and_reinclusion_reuses_the_mapping(): void {
@@ -172,6 +189,73 @@ final class ExtensionLifecycleTest extends TestCase {
 		$store->snapshots['extension:ext-1'] = ['snapshot_uuid'=>'snapshot-1','record_hash'=>'enabled-hash'];
 		$store->claimed_job = ['job_uuid'=>'delete','domain_uuid'=>'domain-1','entity_type'=>'extension','entity_uuid'=>'ext-1','operation'=>'delete_user','payload'=>'{}','record_hash'=>'enabled-hash','attempt_count'=>0];
 		(new tragofone_worker($store, $factory))->run_once('worker'); self::assertSame('deleted', $store->extension_map['ext-1']['sync_status']); self::assertNotEmpty($store->extension_map['ext-1']['deleted_at']); self::assertArrayNotHasKey('extension:ext-1', $store->snapshots);
+	}
+
+	public function test_worker_updates_account_name_and_current_extension_number(): void {
+		$store = new extension_lifecycle_store();
+		$mapping = $this->mapping();
+		$mapping['extension'] = '201';
+		$mapping['tragofone_username'] = '201@company.test';
+		$store->extension_map['ext-1'] = $mapping;
+		$extension = $this->extension();
+		$extension['extension'] = '2001';
+		$extension['effective_caller_id_name'] = 'Updated Account Name';
+		$store->claimed_job = [
+			'job_uuid'=>'update-account', 'domain_uuid'=>'domain-1', 'entity_type'=>'extension',
+			'entity_uuid'=>'ext-1', 'operation'=>'update_sip_configuration',
+			'payload'=>json_encode(['extension'=>$extension,'dids'=>[]], JSON_THROW_ON_ERROR),
+			'record_hash'=>'updated-hash', 'attempt_count'=>0,
+		];
+		$transport = new extension_lifecycle_transport();
+		$transport->responses = [
+			['status'=>200,'headers'=>[],'body'=>'{"access_token":"a"}'],
+			['status'=>200,'headers'=>[],'body'=>'{"status":"SUCCESS"}'],
+			['status'=>200,'headers'=>[],'body'=>'{"status":"SUCCESS"}'],
+		];
+		$factory = static function () use ($transport): tragofone_client {
+			$client = new tragofone_client('https://trago.test', $transport);
+			$client->customer_login('company', 'password');
+			return $client;
+		};
+		self::assertTrue((new tragofone_worker($store, $factory))->run_once('worker'));
+		$user_update = json_decode($transport->requests[1]['body'], true, 512, JSON_THROW_ON_ERROR);
+		$sip_update = json_decode($transport->requests[2]['body'], true, 512, JSON_THROW_ON_ERROR);
+		self::assertSame('Updated Account Name', $user_update['usr_account_name']);
+		self::assertSame('secret', $user_update['usr_password']);
+		self::assertSame(1, $user_update['profile_id']);
+		self::assertArrayNotHasKey('usr_username', $user_update);
+		self::assertSame('2001', $sip_update['configurations']['sip_auth_username']);
+		self::assertSame('2001', $store->extension_map['ext-1']['extension']);
+		self::assertSame('201@company.test', $store->extension_map['ext-1']['tragofone_username']);
+	}
+
+	public function test_worker_uses_sip_password_for_new_tragofone_login(): void {
+		$store = new extension_lifecycle_store();
+		$extension = $this->extension();
+		$extension['password'] = 'SharedSipPassword!';
+		$store->claimed_job = [
+			'job_uuid'=>'create', 'domain_uuid'=>'domain-1', 'entity_type'=>'extension',
+			'entity_uuid'=>'ext-1', 'operation'=>'create_user',
+			'payload'=>json_encode(['extension'=>$extension,'dids'=>[]], JSON_THROW_ON_ERROR),
+			'record_hash'=>'created-hash', 'attempt_count'=>0,
+		];
+		$transport = new extension_lifecycle_transport();
+		$transport->responses = [
+			['status'=>200,'headers'=>[],'body'=>'{"access_token":"a"}'],
+			['status'=>200,'headers'=>[],'body'=>'{"data":{"usr_id":9,"usr_unique_id":"unique-9","cust_id":1}}'],
+			['status'=>200,'headers'=>[],'body'=>'{"status":"SUCCESS"}'],
+		];
+		$factory = static function () use ($transport): tragofone_client {
+			$client = new tragofone_client('https://trago.test', $transport);
+			$client->customer_login('company', 'password');
+			return $client;
+		};
+		self::assertTrue((new tragofone_worker($store, $factory))->run_once('worker'));
+		$create = json_decode($transport->requests[1]['body'], true, 512, JSON_THROW_ON_ERROR);
+		$configuration = json_decode($transport->requests[2]['body'], true, 512, JSON_THROW_ON_ERROR);
+		self::assertSame('SharedSipPassword!', $create['usr_password']);
+		self::assertSame('SharedSipPassword!', $configuration['configurations']['sip_auth_password']);
+		self::assertSame('1001@company.test', $store->extension_map['ext-1']['tragofone_username']);
 	}
 
 	public function test_delete_is_idempotent_when_tragofone_already_removed_the_user(): void {

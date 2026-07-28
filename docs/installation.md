@@ -162,7 +162,7 @@ Use the same `PHP_BIN` and `FUSIONPBX_ROOT` values supplied to the installer on 
 4. Use **Test Connection** before enabling synchronization.
 5. Open **Extensions**, explicitly select the users to synchronize, and save.
 6. Run **Reconciliation**, then inspect **Jobs** and **Mappings**.
-7. Confirm the created Tragofone user, SIP registration, direct DID caller-ID list, restricted feature policy, one-touch voicemail, and supported shared phonebook entries.
+7. Confirm the created Tragofone user, shared application/SIP password, SIP registration, Effective Outbound Caller ID and direct-DID choices, restricted feature policy, one-touch voicemail, and supported shared phonebook entries.
 
 See [Configuration](configuration.md), [User manual](user-manual.md), and [Validation matrix](validation.md) for the full operational checks.
 
