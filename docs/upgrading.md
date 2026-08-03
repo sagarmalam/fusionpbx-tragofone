@@ -34,7 +34,7 @@ sudo FUSIONPBX_ROOT=/var/www/fusionpbx \
 
 The installer preserves the existing encryption-key file, replaces/updates application files, runs the FusionPBX schema/default upgrade, restores declared group permissions, reloads systemd, and enables both timers.
 
-Upgrading from 0.1.x to 0.2.x creates the companion-owned self-care subject, session, assertion, and rate-limit tables and adds global branding fields. Self-care remains disabled until a Superadmin saves a valid public URL and theme. Existing Phase 1 users are not exposed automatically.
+Upgrading from 0.1.x to 0.2.x creates the companion-owned self-care subject, session, assertion, and rate-limit tables and adds global branding fields. Later 0.2.x upgrades add global, domain, and user `selfcare_policy` fields. New policy values default to **Inherit**; an all-Inherit chain resolves to No. A legacy global `selfcare_enabled=true` is interpreted as global **Yes** until the Superadmin explicitly saves the new selector.
 
 ## Verify
 

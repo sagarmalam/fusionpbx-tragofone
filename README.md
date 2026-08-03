@@ -16,6 +16,7 @@ Private, native FusionPBX application for tenant-aware Tragofone provisioning. I
 - Crash recovery for expired worker locks and automatic tenant pause on authentication/identity failures
 - FusionPBX phonebook synchronization to the tenant-wide Tragofone Enterprise Directory
 - Globally branded, signed Tragofone My Account portal with responsive light/dark themes
+- Inherit/Yes/No self-care access policy at global, domain, and individual-user levels
 - Extension-scoped DND, call forwarding, Visual Voicemail, voicemail email, and PIN self-care
 
 No FusionPBX licensed API, remote database access, FusionPBX core patch, or Tragofone server change is required.

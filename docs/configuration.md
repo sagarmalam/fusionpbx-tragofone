@@ -17,6 +17,8 @@ Saving the extension list creates tenant-scoped policies keyed by `extension_uui
 
 Extension selection affects SIP-user, direct-DID, and self-care provisioning. Excluding an extension disables its Tragofone My Account link and revokes companion self-care sessions. The tenant-wide FusionPBX phonebook continues to follow the tenant enable/pause state.
 
+Self-care access has a separate three-level policy. Every selector defaults to **Inherit**, and resolution uses the first explicit value in this order: user, domain, global. If all three values are **Inherit**, the secure system default is **No**. Thus a user-level **No** can disable My Account while leaving that user's SIP synchronization enabled, and a user-level **Yes** can explicitly override a domain or global **No**. Saving a policy change revokes affected active portal sessions and queues user-configuration updates.
+
 Changing the SIP server, SIP port, transport, outbound proxy, profile, or voicemail code invalidates the tenant's feature-policy hash and queues configuration updates for selected extensions. Changing an extension's **Effective Caller ID Name** updates the mapped Tragofone account name through the existing user-update API.
 
 The FusionPBX SIP password is also the Tragofone application-login password. A SIP password rotation updates both credentials. The application username created as `{extension}@{domain}` remains immutable; extension renumbering updates the mapped SIP identity but does not rename or replace the Tragofone user.
@@ -29,8 +31,8 @@ The encryption key lives only in `/etc/fusionpbx/tragofone.env`, owned by `root:
 
 ## Global self-care
 
-Self-care settings are global and Superadmin-only; unlike the Tragofone API endpoint and credentials, they are never inherited or overridden per tenant. Configure the public HTTPS portal directory, name, logo, light/dark background and foreground, button colors, external-forwarding prefixes, and session timeouts. Color pairs must meet 4.5:1 contrast.
+Branding and portal security settings are global and Superadmin-only; they cannot be overridden per tenant. Self-care access itself can be set to **Inherit**, **Yes**, or **No** globally, per domain, and per user. Configure the public HTTPS portal directory, name, logo, light/dark background and foreground, button colors, external-forwarding prefixes, and session timeouts. Color pairs must meet 4.5:1 contrast.
 
 The default forwarding policy is either same-company extensions only or same-company extensions plus approved external prefixes. **Rotate Self-Care Salts** revokes active sessions and asynchronously installs new signed Account URLs for eligible users.
 
-Saving a branding or enable-state change increments the global brand version and queues configuration updates for every enabled, selected, synchronized extension. The generated Account URL contains the raw global values plus a per-user subject, salt, and companion signature. See [Self-care portal](selfcare.md).
+Saving a branding or access-policy change increments the global brand version and queues configuration updates for every enabled, selected, synchronized extension. The generated Account URL contains the raw global values plus a per-user subject, salt, and companion signature. See [Self-care portal](selfcare.md).

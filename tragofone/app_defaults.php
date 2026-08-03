@@ -13,6 +13,7 @@ $defaults = [
 	['sync', 'retry_schedule', '60,300,900,3600,10800,21600', 'array'],
 	['features', 'voicemail_code', '*97', 'text'],
 	['selfcare', 'enabled', 'false', 'boolean'],
+	['selfcare', 'policy', 'inherit', 'text'],
 	['selfcare', 'brand_name', 'Tragofone', 'text'],
 	['selfcare', 'light_background', 'F7F8FA', 'text'],
 	['selfcare', 'light_foreground', '172033', 'text'],

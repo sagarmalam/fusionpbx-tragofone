@@ -11,9 +11,11 @@ final class tragofone_selfcare_repository {
 
 	public function subject(string $subject_uuid): ?array {
 		if (!self::uuid_valid($subject_uuid)) { return null; }
-		$sql = "select s.*, e.*, d.domain_name, m.sync_status from v_tragofone_selfcare_subjects s "
+		$sql = "select s.*, e.*, d.domain_name, m.sync_status,t.selfcare_policy as domain_selfcare_policy,p.selfcare_policy as user_selfcare_policy from v_tragofone_selfcare_subjects s "
 			."join v_extensions e on e.extension_uuid=s.extension_uuid and e.domain_uuid=s.domain_uuid "
 			."join v_domains d on d.domain_uuid=s.domain_uuid "
+			."join v_tragofone_tenants t on t.domain_uuid=s.domain_uuid and t.enabled=true "
+			."left join v_tragofone_extension_policies p on p.extension_uuid=s.extension_uuid and p.domain_uuid=s.domain_uuid "
 			."join v_tragofone_extension_mappings m on m.extension_uuid=s.extension_uuid and m.domain_uuid=s.domain_uuid and m.deleted_at is null "
 			."where s.subject_uuid=:subject_uuid and s.active=true and e.enabled=true and m.sync_status='synchronized'";
 		return $this->row($sql, compact('subject_uuid'));
@@ -57,18 +59,22 @@ final class tragofone_selfcare_repository {
 
 	public function authenticate(?string $cookie, string $remote_address, string $user_agent): ?array {
 		if (!is_string($cookie) || !preg_match('/^([0-9a-f-]{36})\.([A-Za-z0-9_-]{40,})$/i', $cookie, $matches) || !self::uuid_valid($matches[1])) { return null; }
-		$sql = "select ss.*,s.domain_uuid,s.extension_uuid,s.active,e.*,d.domain_name,m.sync_status from v_tragofone_selfcare_sessions ss "
+		$sql = "select ss.*,s.domain_uuid,s.extension_uuid,s.active,e.*,d.domain_name,m.sync_status,t.selfcare_policy as domain_selfcare_policy,p.selfcare_policy as user_selfcare_policy from v_tragofone_selfcare_sessions ss "
 			."join v_tragofone_selfcare_subjects s on s.subject_uuid=ss.subject_uuid "
 			."join v_extensions e on e.extension_uuid=s.extension_uuid and e.domain_uuid=s.domain_uuid "
 			."join v_domains d on d.domain_uuid=s.domain_uuid "
+			."join v_tragofone_tenants t on t.domain_uuid=s.domain_uuid and t.enabled=true "
+			."left join v_tragofone_extension_policies p on p.extension_uuid=s.extension_uuid and p.domain_uuid=s.domain_uuid "
 			."join v_tragofone_extension_mappings m on m.extension_uuid=s.extension_uuid and m.domain_uuid=s.domain_uuid and m.deleted_at is null "
 			."where ss.session_uuid=:session_uuid and ss.revoked_at is null and ss.idle_expires_at>now() and ss.absolute_expires_at>now() "
 			."and s.active=true and e.enabled=true and m.sync_status='synchronized'";
 		$row = $this->row($sql, ['session_uuid'=>$matches[1]]);
 		if ($row === null || !hash_equals((string) $row['token_hash'], hash('sha256', $matches[2]))) { return null; }
+		$config = $this->global_config();
+		if (!tragofone_selfcare_policy::enabled(tragofone_selfcare_policy::global($config), $row['domain_selfcare_policy'] ?? 'inherit', $row['user_selfcare_policy'] ?? 'inherit')) { return null; }
 		if (!hash_equals((string) $row['ip_hash'], $this->crypto->fingerprint('selfcare-session-ip', $remote_address))
 			|| !hash_equals((string) $row['user_agent_hash'], $this->crypto->fingerprint('selfcare-session-agent', $user_agent))) { return null; }
-		$config = $this->global_config(); $idle = min(3600, max(300, (int) ($config['selfcare_session_idle_seconds'] ?? 900)));
+		$idle = min(3600, max(300, (int) ($config['selfcare_session_idle_seconds'] ?? 900)));
 		$this->execute('update v_tragofone_selfcare_sessions set last_seen_at=now(),idle_expires_at=least(now() + (:idle || \' seconds\')::interval,absolute_expires_at) where session_uuid=:session_uuid', ['idle'=>$idle,'session_uuid'=>$row['session_uuid']]);
 		$row['csrf'] = hash_hmac('sha256', 'csrf', $matches[2]);
 		$row['theme'] = json_decode((string) $row['theme_payload'], true) ?: [];

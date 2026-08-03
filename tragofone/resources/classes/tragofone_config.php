@@ -16,9 +16,12 @@ final class tragofone_config {
 		$resolved['voicemail_code'] = $resolved['voicemail_code'] ?? $global['voicemail_code'] ?? '*97';
 		$resolved['sip_port'] = (int) ($resolved['sip_port'] ?? $global['sip_port'] ?? 5061);
 		$resolved['sip_protocol'] = strtolower((string) ($resolved['sip_protocol'] ?? $global['sip_protocol'] ?? 'tls'));
+		$resolved['selfcare_global_policy'] = tragofone_selfcare_policy::global($global);
+		$resolved['selfcare_policy'] = tragofone_selfcare_policy::normalize($tenant['selfcare_policy'] ?? tragofone_selfcare_policy::INHERIT);
+		$resolved['selfcare_enabled'] = tragofone_selfcare_policy::enabled($resolved['selfcare_global_policy'], $resolved['selfcare_policy']);
 		// Self-care branding is intentionally global. Tenant records cannot override it.
 		foreach ([
-			'selfcare_enabled', 'selfcare_base_url', 'selfcare_brand_name', 'selfcare_brand_logo_base64',
+			'selfcare_base_url', 'selfcare_brand_name', 'selfcare_brand_logo_base64',
 			'selfcare_brand_logo_mime', 'selfcare_light_background', 'selfcare_light_foreground',
 			'selfcare_light_button', 'selfcare_light_button_foreground', 'selfcare_dark_background',
 			'selfcare_dark_foreground', 'selfcare_dark_button', 'selfcare_dark_button_foreground',

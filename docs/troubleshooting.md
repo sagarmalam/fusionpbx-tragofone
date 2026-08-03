@@ -11,7 +11,7 @@
 - **No caller ID:** verify the extension's Effective Outbound Caller ID. For additional direct-DID choices, ensure each destination is enabled, voice-capable, inbound, and contains one direct extension action.
 - **Phonebook contacts unavailable:** verify `v_contacts`, `v_contact_phones`, and `v_contact_emails`, then inspect contact jobs and the customer enterprise-directory API response. Do not enable Cloud Contacts as a workaround.
 - **Registration fails:** confirm SIP server, transport, port, proxy, username, and password at source.
-- **My Account is missing:** confirm global self-care is enabled, the extension is selected and synchronized, and its latest configuration job completed with `myaccount_status=TRUE`.
+- **My Account is missing:** check the effective user → domain → global self-care policy, confirm the extension is selected and synchronized, and confirm its latest configuration job completed with `myaccount_status=TRUE`. An all-Inherit chain resolves to No.
 - **My Account link is rejected:** open My Account again; launches expire in two minutes and are single-use. Verify PBX/Tragofone clocks and the global brand version if every fresh link fails.
 - **Branding did not update:** save Global Settings, confirm user update jobs were queued, and run reconciliation. Raw theme values live in each Account URL, so propagation requires successful reprovisioning.
 - **Portal immediately expires:** confirm HTTPS, cookie support in the Tragofone WebView, stable source IP/user agent during the session, and configured idle/absolute timeouts.

@@ -18,7 +18,7 @@ try {
 	$theme = tragofone_selfcare_theme::launch_theme($_GET);
 	if ((int) $theme['brand_v'] !== (int) $subject['brand_version']) { throw new RuntimeException('Account URL is no longer current.'); }
 	$config = $sc_repository->global_config();
-	if (!tragofone_normalizer::boolean($config['selfcare_enabled'] ?? false)) { throw new RuntimeException('Self-care is disabled.'); }
+	if (!tragofone_selfcare_policy::enabled(tragofone_selfcare_policy::global($config), $subject['domain_selfcare_policy'] ?? 'inherit', $subject['user_selfcare_policy'] ?? 'inherit')) { throw new RuntimeException('Self-care is disabled.'); }
 	tragofone_selfcare_theme::validate_logo_url((string) $theme['brand_logo'], (string) $config['selfcare_base_url']);
 	if (!$sc_repository->consume_assertion($scid, $time, $hash)) { throw new RuntimeException('Signed launch was already used.'); }
 	$session = $sc_repository->create_session($subject, $theme, (int) ($config['selfcare_session_idle_seconds'] ?? 900), (int) ($config['selfcare_session_absolute_seconds'] ?? 3600), sc_remote_address(), sc_user_agent());

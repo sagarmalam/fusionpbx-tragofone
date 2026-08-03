@@ -13,14 +13,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	try {
 		$restore = isset($_POST['restore_selfcare_defaults']);
 		$rotate_salts = isset($_POST['rotate_selfcare_salts']);
+		$selfcare_policy = $restore ? tragofone_selfcare_policy::INHERIT : tragofone_selfcare_policy::normalize($_POST['selfcare_policy'] ?? tragofone_selfcare_policy::INHERIT);
 		$base_url = tragofone_url_validator::validate(trim((string) ($_POST['base_url'] ?? '')));
 		$customer_username = trim((string) ($_POST['customer_username'] ?? ''));
 		if ($customer_username !== '' && empty($_POST['customer_password']) && empty($config['encrypted_customer_password'])) {
 			throw new InvalidArgumentException('Global company-admin password is required when a global username is configured.');
 		}
-		$selfcare_enabled = !$restore && tragofone_normalizer::boolean($_POST['selfcare_enabled'] ?? false);
+		$selfcare_enabled = tragofone_selfcare_policy::enabled($selfcare_policy);
 		$selfcare_base_url = $restore ? '' : trim((string) ($_POST['selfcare_base_url'] ?? ''));
-		if ($selfcare_enabled) {
+		if ($selfcare_enabled && $selfcare_base_url === '') { throw new InvalidArgumentException('Public portal base URL is required when global self-care is Yes.'); }
+		if ($selfcare_base_url !== '') {
 			$selfcare_base_url = tragofone_url_validator::validate($selfcare_base_url);
 			$parts = parse_url($selfcare_base_url);
 			if (!empty($parts['query']) || !empty($parts['fragment'])) { throw new InvalidArgumentException('Self-care base URL cannot contain a query string or fragment.'); }
@@ -55,12 +57,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$absolute = $restore ? 3600 : (int) ($_POST['selfcare_session_absolute_seconds'] ?? 3600);
 		if ($idle < 300 || $idle > 3600 || $absolute < $idle || $absolute > 86400) { throw new InvalidArgumentException('Session idle timeout must be 5–60 minutes and absolute timeout must be between idle timeout and 24 hours.'); }
 
-		$brand_fields = ['selfcare_enabled','selfcare_base_url','selfcare_brand_name','selfcare_brand_logo_base64','selfcare_brand_logo_mime','selfcare_light_background','selfcare_light_foreground','selfcare_light_button','selfcare_light_button_foreground','selfcare_dark_background','selfcare_dark_foreground','selfcare_dark_button','selfcare_dark_button_foreground'];
+		$brand_fields = ['selfcare_enabled','selfcare_policy','selfcare_base_url','selfcare_brand_name','selfcare_brand_logo_base64','selfcare_brand_logo_mime','selfcare_light_background','selfcare_light_foreground','selfcare_light_button','selfcare_light_button_foreground','selfcare_dark_background','selfcare_dark_foreground','selfcare_dark_button','selfcare_dark_button_foreground'];
 		$old_brand = array_intersect_key($config, array_flip($brand_fields));
 		$old_brand['selfcare_enabled'] = tragofone_normalizer::boolean($old_brand['selfcare_enabled'] ?? false) ? 'true' : 'false';
+		$old_brand['selfcare_policy'] = tragofone_selfcare_policy::global($config);
 		$old_brand_hash = tragofone_normalizer::hash($old_brand);
 		$new_brand = [
-			'selfcare_enabled'=>$selfcare_enabled ? 'true' : 'false', 'selfcare_base_url'=>$selfcare_base_url, 'selfcare_brand_name'=>$theme['brand_name'],
+			'selfcare_enabled'=>$selfcare_enabled ? 'true' : 'false', 'selfcare_policy'=>$selfcare_policy,
+			'selfcare_base_url'=>$selfcare_base_url, 'selfcare_brand_name'=>$theme['brand_name'],
 			'selfcare_brand_logo_base64'=>$logo_base64, 'selfcare_brand_logo_mime'=>$logo_mime,
 			'selfcare_light_background'=>$theme['l_bg'], 'selfcare_light_foreground'=>$theme['l_fg'],
 			'selfcare_light_button'=>$theme['l_btn'], 'selfcare_light_button_foreground'=>$theme['l_btn_fg'],
@@ -87,8 +91,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			'entity_uuid'=>$record['config_uuid'], 'summary'=>$rotate_salts ? 'Global self-care settings saved and all self-care salts rotated.' : 'Global Tragofone and self-care settings updated.',
 			'insert_user'=>$_SESSION['user_uuid'],
 		]);
+		$policy_changed = $old_brand['selfcare_policy'] !== $selfcare_policy;
 		if ($rotate_salts) {
 			$database->execute('update v_tragofone_selfcare_subjects set active=false,update_date=now() where active=true');
+			$database->execute('update v_tragofone_selfcare_sessions set revoked_at=now() where revoked_at is null');
+		} elseif ($policy_changed) {
 			$database->execute('update v_tragofone_selfcare_sessions set revoked_at=now() where revoked_at is null');
 		}
 		$queued = 0;
@@ -100,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		header('Location: global_settings.php?saved=1&queued='.$queued); exit;
 	} catch (Throwable $error) {
 		$error_message = tragofone_redactor::message($error->getMessage());
-		foreach (['base_url','customer_username','sip_port','sip_protocol','voicemail_code','selfcare_enabled','selfcare_base_url','selfcare_brand_name','selfcare_light_background','selfcare_light_foreground','selfcare_light_button','selfcare_light_button_foreground','selfcare_dark_background','selfcare_dark_foreground','selfcare_dark_button','selfcare_dark_button_foreground','selfcare_external_forwarding','selfcare_external_prefixes','selfcare_session_idle_seconds','selfcare_session_absolute_seconds'] as $field) {
+		foreach (['base_url','customer_username','sip_port','sip_protocol','voicemail_code','selfcare_policy','selfcare_base_url','selfcare_brand_name','selfcare_light_background','selfcare_light_foreground','selfcare_light_button','selfcare_light_button_foreground','selfcare_dark_background','selfcare_dark_foreground','selfcare_dark_button','selfcare_dark_button_foreground','selfcare_external_forwarding','selfcare_external_prefixes','selfcare_session_idle_seconds','selfcare_session_absolute_seconds'] as $field) {
 			if (array_key_exists($field, $_POST)) { $config[$field] = $_POST[$field]; }
 		}
 	}
@@ -139,7 +146,8 @@ $tragofone_subtitle = 'Shared API defaults and globally branded self-care contro
 
 		<section class="tg-card wide"><div class="tg-card-title"><span class="tg-icon">◐</span>Self-Care Portal</div><div class="tg-card-body">
 			<div class="tg-guide"><strong>Global branding</strong>These values are signed into every eligible Tragofone Account URL. Saving branding changes queues reprovisioning across enabled companies.</div>
-			<div class="tg-field"><div class="tg-label">Enable portal</div><label><input type="checkbox" name="selfcare_enabled" value="true" <?= tragofone_normalizer::boolean($config['selfcare_enabled'] ?? false) ? 'checked' : '' ?>> Enable globally</label></div>
+			<?php $global_selfcare_policy=isset($config['selfcare_policy'])?tragofone_selfcare_policy::normalize($config['selfcare_policy']):tragofone_selfcare_policy::global($config); ?>
+			<div class="tg-field"><div class="tg-label">Self-care access<span class="tg-help">Inherit uses the secure system default: No.</span></div><select class="formfld" name="selfcare_policy"><?php foreach(['inherit'=>'Inherit','yes'=>'Yes','no'=>'No'] as $value=>$label){?><option value="<?= $value ?>" <?= $global_selfcare_policy===$value?'selected':'' ?>><?= $label ?></option><?php }?></select></div>
 			<div class="tg-field"><div class="tg-label">Public portal base URL<span class="tg-help">Normally https://pbx.example/app/tragofone/selfcare</span></div><input class="formfld" name="selfcare_base_url" value="<?= escape($config['selfcare_base_url'] ?? '') ?>" placeholder="https://pbx.example/app/tragofone/selfcare"></div>
 			<div class="tg-field"><div class="tg-label">Portal name</div><input class="formfld" maxlength="40" name="selfcare_brand_name" value="<?= escape($config['selfcare_brand_name'] ?? 'Tragofone') ?>"></div>
 			<div class="tg-field"><div class="tg-label">Brand logo<span class="tg-help">PNG, JPEG, or WebP; maximum 256 KB and 512 × 512.</span></div><div><input type="file" name="selfcare_brand_logo" accept="image/png,image/jpeg,image/webp"><?php if (!empty($config['selfcare_brand_logo_base64'])) { ?><label style="display:block;margin-top:8px"><input type="checkbox" name="remove_selfcare_logo" value="true"> Remove stored logo</label><?php } ?></div></div>

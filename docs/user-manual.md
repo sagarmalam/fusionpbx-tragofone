@@ -264,6 +264,8 @@ For operational failures, see [Troubleshooting](troubleshooting.md). For securit
 
 ## Phase 2 self-care
 
-Only a Superadmin can configure branding. Open **Global → Self-Care Portal**, enter the public HTTPS portal directory, upload an optional logo, set both theme palettes, choose forwarding/session policy, and save. The module queues existing eligible users for Account URL updates; company admins cannot override these global values.
+Only a Superadmin can configure branding. Open **Global → Self-Care Portal**, enter the public HTTPS portal directory, upload an optional logo, set both theme palettes, choose forwarding/session policy, and save. Branding remains identical for every company.
+
+Self-care access has **Inherit**, **Yes**, and **No** at global, domain, and user levels. The default is **Inherit**. User overrides domain, domain overrides global, and an all-Inherit chain resolves to No. Configure the domain value in **Tenant Settings** and individual values in **Extension Synchronization**. This policy is independent of the SIP synchronization checkbox, although an excluded SIP user cannot receive self-care.
 
 End users open **My Account** inside Tragofone. They can see their own extension/caller IDs, manage DND and approved forwarding, play or delete their own FusionPBX voicemail, and update voicemail email/PIN. They do not use FusionPBX credentials. When a session expires, they reopen My Account to obtain a fresh signed launch. See [Self-care portal](selfcare.md).

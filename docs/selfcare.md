@@ -8,7 +8,7 @@ The Phase 2 portal is a public FusionPBX route opened by Tragofone My Account. P
 
 1. Install or upgrade the companion and run both FusionPBX upgrade passes.
 2. Open **Advanced → Tragofone Integration → Global**.
-3. In **Self-Care Portal**, enable the portal and enter the public HTTPS directory URL, normally `https://pbx.example/app/tragofone/selfcare`.
+3. In **Self-Care Portal**, set global self-care access to **Yes** and enter the public HTTPS directory URL, normally `https://pbx.example/app/tragofone/selfcare`.
 4. Set the global portal name and optionally upload a PNG, JPEG, or WebP logo.
 5. Enter light and dark background, text, button, and button-text colors. The form rejects invalid hexadecimal values and color pairs below WCAG AA contrast.
 6. Choose whether external forwarding is allowed. If enabled, enter comma-separated prefixes such as `+1,+44`; same-company internal extensions remain allowed.
@@ -16,6 +16,12 @@ The Phase 2 portal is a public FusionPBX route opened by Tragofone My Account. P
 8. Review queued jobs and mappings. Every eligible synchronized extension should receive `myaccount_status=TRUE` and a signed `myaccount_url` containing the global theme.
 
 Branding is global. Company admins cannot override it. Saving a theme, logo, portal name, URL, or enable-state change increments the brand version and queues all eligible users for asynchronous reprovisioning.
+
+## Access policy
+
+Global, domain, and user settings each offer **Inherit**, **Yes**, and **No**, defaulting to **Inherit**. The user setting overrides the domain setting, and the domain setting overrides the global setting. If every level inherits, self-care is disabled. User policies are configured on **Extension Synchronization**, independently of the SIP synchronization checkbox.
+
+An explicit **No** revokes affected sessions and sends `myaccount_status=FALSE`; an explicit or inherited effective **Yes** sends the signed Account URL. Domain and user administrators can change only the levels allowed by their existing module permissions. Branding remains global and Superadmin-only.
 
 Use **Rotate Self-Care Salts** after suspected URL exposure or as a security operation. Rotation revokes every active portal session, deactivates the old assertions, and queues a newly signed Account URL for each eligible user. The audit entry records the operation without recording salts, complete URLs, or signatures.
 
@@ -34,7 +40,7 @@ The portal follows the WebView/device light or dark preference. There is no port
 
 The worker configures an extension-specific URL containing an opaque `scid`, raw global branding values, `brand_v`, companion `brand_sig`, and `tragofone_salt`. Tragofone removes the salt and adds `tragofone_hash` and `tragofone_time` at launch.
 
-The portal validates the two-minute Tragofone assertion, 60-second future clock skew, companion HMAC, brand version, replay state, extension/mapping status, and global enable state. It then redirects to a clean URL and stores only a hashed session token server-side.
+The portal validates the two-minute Tragofone assertion, 60-second future clock skew, companion HMAC, brand version, replay state, extension/mapping status, and effective global/domain/user access policy. It then redirects to a clean URL and stores only a hashed session token server-side.
 
 ## Mockups
 

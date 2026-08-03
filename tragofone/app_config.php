@@ -33,7 +33,7 @@ $tables = [
 		['config_uuid', 'uuid', 'primary'], ['base_url', 'text'], ['customer_username', 'text'],
 		['encrypted_customer_password', 'text'], ['verify_tls', 'boolean'], ['default_profile_id', 'numeric'],
 		['sip_port', 'numeric'], ['sip_protocol', 'text'], ['voicemail_code', 'text'],
-		['selfcare_enabled', 'boolean'], ['selfcare_base_url', 'text'], ['selfcare_brand_name', 'text'],
+		['selfcare_enabled', 'boolean'], ['selfcare_policy', 'text'], ['selfcare_base_url', 'text'], ['selfcare_brand_name', 'text'],
 		['selfcare_brand_logo_base64', 'text'], ['selfcare_brand_logo_mime', 'text'],
 		['selfcare_light_background', 'text'], ['selfcare_light_foreground', 'text'],
 		['selfcare_light_button', 'text'], ['selfcare_light_button_foreground', 'text'],
@@ -53,7 +53,7 @@ $tables = [
 		['expected_company_name', 'text'], ['default_profile_id', 'numeric'],
 		['sip_server', 'text'], ['sip_port', 'numeric'], ['sip_protocol', 'text'],
 		['outbound_proxy_server', 'text'], ['outbound_proxy_port', 'numeric'],
-		['voicemail_code', 'text'], ['deletion_grace_seconds', 'numeric'], ['default_extension_sync', 'boolean'],
+		['voicemail_code', 'text'], ['deletion_grace_seconds', 'numeric'], ['default_extension_sync', 'boolean'], ['selfcare_policy', 'text'],
 		['last_auth_status', 'text'], ['last_error', 'text'], ['last_sync_at', 'timestamp'],
 		['insert_date', 'timestamp'], ['insert_user', 'uuid'], ['update_date', 'timestamp'], ['update_user', 'uuid'],
 	],
@@ -79,7 +79,7 @@ $tables = [
 	],
 	'v_tragofone_extension_policies' => [
 		['policy_uuid', 'uuid', 'primary'], ['domain_uuid', 'uuid', 'index'], ['extension_uuid', 'uuid', 'index'],
-		['sync_enabled', 'boolean'], ['insert_date', 'timestamp'], ['insert_user', 'uuid'],
+		['sync_enabled', 'boolean'], ['selfcare_policy', 'text'], ['insert_date', 'timestamp'], ['insert_user', 'uuid'],
 		['update_date', 'timestamp'], ['update_user', 'uuid'],
 	],
 	'v_tragofone_snapshots' => [

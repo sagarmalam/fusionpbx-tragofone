@@ -5,6 +5,7 @@ if (!permission_exists('tragofone_tenant_edit')) { echo 'access denied'; exit; }
 $database = new database(); $domain_uuid = $_SESSION['domain_uuid']; $error_message = null;
 $rows = $database->select('select * from v_tragofone_tenants where domain_uuid = :domain_uuid', ['domain_uuid' => $domain_uuid], 'all') ?: [];
 $tenant = $rows[0] ?? [];
+$original_selfcare_policy = tragofone_selfcare_policy::normalize($tenant['selfcare_policy'] ?? tragofone_selfcare_policy::INHERIT);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$token_validator = new token;
 	if (!$token_validator->validate($_SERVER['PHP_SELF'])) { http_response_code(403); echo 'invalid token'; exit; }
@@ -32,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			'voicemail_code' => trim($_POST['voicemail_code'] ?? '*97'),
 			'deletion_grace_seconds' => max(60, (int) ($_POST['deletion_grace_seconds'] ?? 86400)),
 			'default_extension_sync' => ($_POST['default_extension_sync'] ?? 'true') === 'true' ? 'true' : 'false',
+			'selfcare_policy' => tragofone_selfcare_policy::normalize($_POST['selfcare_policy'] ?? tragofone_selfcare_policy::INHERIT),
 			'insert_date' => $tenant['insert_date'] ?? date('c'), 'insert_user' => $tenant['insert_user'] ?? $_SESSION['user_uuid'],
 			'update_date' => date('c'), 'update_user' => $_SESSION['user_uuid'],
 		];
@@ -40,10 +42,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$sql = 'insert into v_tragofone_tenants ('.implode(', ', $columns).') values (:'.implode(', :', $columns).') ';
 		$sql .= 'on conflict (tragofone_tenant_uuid) do update set '.implode(', ', array_map(static fn ($column) => $column.' = excluded.'.$column, $updates));
 		if ($database->execute($sql, $record) === false) { throw new RuntimeException('Unable to save tenant settings.'); }
-		header('Location: tenant_settings.php?saved=1'); exit;
+		$queued = 0;
+		if ($original_selfcare_policy !== $record['selfcare_policy']) {
+			$database->execute('update v_tragofone_selfcare_sessions set revoked_at=now() where subject_uuid in (select subject_uuid from v_tragofone_selfcare_subjects where domain_uuid=:domain_uuid) and revoked_at is null', ['domain_uuid'=>$domain_uuid]);
+			$database->execute("delete from v_tragofone_snapshots where domain_uuid=:domain_uuid and entity_type='extension'", ['domain_uuid'=>$domain_uuid]);
+			if ($record['enabled'] === 'true' && $record['paused'] === 'false') {
+				$store = new tragofone_fusionpbx_store($database); $resolved_tenant = $store->tenant($domain_uuid);
+				if ($resolved_tenant !== null) { $queued = (new tragofone_scanner($store))->scan_tenant($resolved_tenant, null); }
+			}
+		}
+		header('Location: tenant_settings.php?saved=1&queued='.$queued); exit;
 	} catch (Throwable $error) {
 		$error_message = tragofone_redactor::message($error->getMessage());
-		foreach (['enabled','paused','inherit_global_url','inherit_global_credentials','base_url','customer_username','expected_customer_id','default_profile_id','sip_server','sip_port','sip_protocol','outbound_proxy_server','outbound_proxy_port','voicemail_code','deletion_grace_seconds','default_extension_sync'] as $field) {
+		foreach (['enabled','paused','inherit_global_url','inherit_global_credentials','base_url','customer_username','expected_customer_id','default_profile_id','sip_server','sip_port','sip_protocol','outbound_proxy_server','outbound_proxy_port','voicemail_code','deletion_grace_seconds','default_extension_sync','selfcare_policy'] as $field) {
 			if (array_key_exists($field, $_POST)) { $tenant[$field] = $_POST[$field]; }
 		}
 	}
@@ -51,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $is_enabled = tragofone_normalizer::boolean($tenant['enabled'] ?? false); $is_paused = tragofone_normalizer::boolean($tenant['paused'] ?? false);
 $status_label = !$is_enabled ? 'Disabled' : ($is_paused ? 'Paused' : 'Active'); $status_class = !$is_enabled ? 'off' : ($is_paused ? 'paused' : 'active');
 $default_extension_sync = !array_key_exists('default_extension_sync', $tenant) || $tenant['default_extension_sync'] === null ? true : tragofone_normalizer::boolean($tenant['default_extension_sync']);
+$tenant_selfcare_policy = tragofone_selfcare_policy::normalize($tenant['selfcare_policy'] ?? tragofone_selfcare_policy::INHERIT);
 $token_generator = new token; $token = $token_generator->create($_SERVER['PHP_SELF']);
 require_once 'resources/header.php';
 $tragofone_page = 'tenant'; $tragofone_title = 'Tenant Settings';
@@ -62,7 +74,7 @@ $tragofone_subtitle = 'Configure Tragofone provisioning for '.($_SESSION['domain
 <div class="tfn-shell">
 	<?php require __DIR__.'/resources/views/navigation.php'; ?>
 	<div style="display:flex;justify-content:flex-end;margin:-4px 0 14px"><span class="tf-state <?= $status_class ?>">Integration <?= $status_label ?></span></div>
-	<?php if (isset($_GET['saved'])) { ?><div class="tf-alert ok">Settings saved successfully. The background worker will apply relevant changes.</div><?php } ?>
+	<?php if (isset($_GET['saved'])) { ?><div class="tf-alert ok">Settings saved successfully. <?= (int)($_GET['queued']??0) ?> synchronization job(s) queued.</div><?php } ?>
 	<?php if ($error_message !== null) { ?><div class="tf-alert error"><?= escape($error_message) ?></div><?php } ?>
 	<form method="post"><input type="hidden" name="<?= escape($token['name']) ?>" value="<?= escape($token['hash']) ?>">
 	<div class="tf-grid">
@@ -70,6 +82,7 @@ $tragofone_subtitle = 'Configure Tragofone provisioning for '.($_SESSION['domain
 			<div class="tf-field"><div class="tf-label">Integration state<span class="tf-help">Enable provisioning for this FusionPBX domain.</span></div><select name="enabled" class="formfld"><option value="true" <?= $is_enabled ? 'selected' : '' ?>>Enabled</option><option value="false" <?= !$is_enabled ? 'selected' : '' ?>>Disabled</option></select></div>
 			<div class="tf-field"><div class="tf-label">Processing state<span class="tf-help">Pause this tenant without changing user mappings.</span></div><select name="paused" class="formfld"><option value="false" <?= !$is_paused ? 'selected' : '' ?>>Running</option><option value="true" <?= $is_paused ? 'selected' : '' ?>>Paused</option></select></div>
 			<div class="tf-field"><div class="tf-label">New extensions<span class="tf-help">Default for extensions that have no explicit selection yet.</span></div><select name="default_extension_sync" class="formfld"><option value="true" <?= $default_extension_sync ? 'selected' : '' ?>>Sync automatically</option><option value="false" <?= !$default_extension_sync ? 'selected' : '' ?>>Do not sync until selected</option></select></div>
+			<div class="tf-field"><div class="tf-label">Self-care access<span class="tf-help">Inherit follows the global setting. A user-level setting can override this value.</span></div><select name="selfcare_policy" class="formfld"><?php foreach(['inherit'=>'Inherit','yes'=>'Yes','no'=>'No'] as $value=>$label){?><option value="<?= $value ?>" <?= $tenant_selfcare_policy===$value?'selected':'' ?>><?= $label ?></option><?php }?></select></div>
 		</div></section>
 		<section class="tf-card"><div class="tf-card-title"><span class="tf-icon">↗</span>Tragofone Endpoint</div><div class="tf-card-body">
 			<div class="tf-field"><div class="tf-label">URL source<span class="tf-help">Use the global endpoint or a tenant-specific URL.</span></div><select id="inherit_global_url" name="inherit_global_url" class="formfld"><option value="false" <?= !tragofone_normalizer::boolean($tenant['inherit_global_url'] ?? false) ? 'selected' : '' ?>>Tenant-specific URL</option><option value="true" <?= tragofone_normalizer::boolean($tenant['inherit_global_url'] ?? false) ? 'selected' : '' ?>>Inherit global URL</option></select></div>
