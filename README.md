@@ -15,8 +15,18 @@ Private, native FusionPBX application for tenant-aware Tragofone provisioning. I
 - In-GUI reconciliation and failed-job retry controls
 - Crash recovery for expired worker locks and automatic tenant pause on authentication/identity failures
 - FusionPBX phonebook synchronization to the tenant-wide Tragofone Enterprise Directory
+- Globally branded, signed Tragofone My Account portal with responsive light/dark themes
+- Extension-scoped DND, call forwarding, Visual Voicemail, voicemail email, and PIN self-care
 
 No FusionPBX licensed API, remote database access, FusionPBX core patch, or Tragofone server change is required.
+
+## Phase 2 self-care
+
+The Superadmin configures one global portal name, logo, and light/dark color set. The worker signs those raw values into each eligible user's Tragofone Account URL. A one-time Tragofone salt launch creates a short server-side session; users never receive a FusionPBX login or access another extension's data.
+
+![Desktop and mobile self-care mockup](docs/mockups/selfcare-desktop-light.png)
+
+See [Self-care portal](docs/selfcare.md) and the [interactive mockup](docs/mockups/selfcare.html).
 
 ## Quick start
 
@@ -32,6 +42,7 @@ See [Installation](docs/installation.md) for the explicit FusionPBX/PHP compatib
 - [Security](docs/security.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Validation matrix](docs/validation.md)
+- [Self-care portal](docs/selfcare.md)
 
 ## Development
 

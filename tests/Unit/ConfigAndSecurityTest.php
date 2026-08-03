@@ -20,6 +20,13 @@ final class ConfigAndSecurityTest extends TestCase {
 		);
 		self::assertSame('https://global.test', $resolved['base_url']); self::assertSame('global', $resolved['customer_username']);
 	}
+	public function test_selfcare_branding_is_always_global(): void {
+		$resolved=tragofone_config::resolve(
+			['selfcare_enabled'=>true,'selfcare_brand_name'=>'Global Brand','base_url'=>'https://global.test','customer_username'=>'global','encrypted_customer_password'=>'secret'],
+			['inherit_global_url'=>true,'inherit_global_credentials'=>true,'selfcare_brand_name'=>'Tenant Brand']
+		);
+		self::assertSame('Global Brand',$resolved['selfcare_brand_name']);self::assertTrue($resolved['selfcare_enabled']);
+	}
 	public function test_redacts_nested_secrets(): void {
 		$data = tragofone_redactor::data(['token' => 'abc', 'Sip' => ['sip_auth_password' => 'secret', 'sip_authid' => '1001']]);
 		self::assertSame('[REDACTED]', $data['token']); self::assertSame('[REDACTED]', $data['Sip']['sip_auth_password']);

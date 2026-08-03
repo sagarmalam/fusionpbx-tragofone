@@ -8,7 +8,7 @@ The companion has its own runtime requirements in addition to FusionPBX's requir
 |---|---|---|
 | FusionPBX | 5.5 series | Integration-tested with FusionPBX `5.5.12`, branch commit `369d1f68c93912a1659a41c7e89f7acffc85e25b` |
 | PHP | 8.1 or newer; 8.1, 8.2, and 8.3 are covered by CI | Integration-tested with PHP CLI/FPM 8.2.32; PHP 8.4 and 8.5 are not yet supported because the complete FusionPBX integration has not been tested on them |
-| PHP extensions | `curl`, `json`, `mbstring`, `PDO`, `pdo_pgsql`, and `sodium` | All required; `intl` is optional and improves international-domain normalization |
+| PHP extensions | `curl`, `fileinfo`, `json`, `mbstring`, `PDO`, `pdo_pgsql`, and `sodium` | All required; `intl` is optional and improves international-domain normalization |
 | Database | The PostgreSQL database used by the supported FusionPBX installation | Integration-tested with PostgreSQL 18.4; the companion has no separate PostgreSQL version requirement |
 | Operating system | Linux with systemd and the standard FusionPBX filesystem layout | Integration-tested on Debian 13; the supplied worker units do not support FreeBSD or non-systemd hosts |
 | FusionPBX runtime account | `www-data:www-data` by default | Other accounts are supported through installer variables |
@@ -36,7 +36,7 @@ Run these commands on the FusionPBX host:
 sudo php /var/www/fusionpbx/core/upgrade/upgrade.php --version
 php -v
 php -r '
-$required = ["curl", "json", "mbstring", "PDO", "pdo_pgsql", "sodium"];
+$required = ["curl", "fileinfo", "json", "mbstring", "PDO", "pdo_pgsql", "sodium"];
 foreach ($required as $extension) {
     printf("%-12s %s\n", $extension, extension_loaded($extension) ? "OK" : "MISSING");
 }
@@ -163,6 +163,9 @@ Use the same `PHP_BIN` and `FUSIONPBX_ROOT` values supplied to the installer on 
 5. Open **Extensions**, explicitly select the users to synchronize, and save.
 6. Run **Reconciliation**, then inspect **Jobs** and **Mappings**.
 7. Confirm the created Tragofone user, shared application/SIP password, SIP registration, Effective Outbound Caller ID and direct-DID choices, restricted feature policy, one-touch voicemail, and supported shared phonebook entries.
+8. To enable Phase 2, open **Global Settings → Self-Care Portal**, enter the public HTTPS URL ending in `/app/tragofone/selfcare`, configure branding, save, and verify that synchronization updates `myaccount_status` and `myaccount_url`.
+
+The public portal requires a certificate trusted by the mobile device. PHP-FPM must be able to read the normal FusionPBX voicemail storage path for playback and remove owned voicemail files when a user confirms deletion. No extra web-server route or FusionPBX license is required.
 
 See [Configuration](configuration.md), [User manual](user-manual.md), and [Validation matrix](validation.md) for the full operational checks.
 

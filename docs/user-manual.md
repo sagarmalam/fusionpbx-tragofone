@@ -11,7 +11,7 @@ For each enabled FusionPBX domain, the module can synchronize:
 - The shared FusionPBX phonebook to the Tragofone Enterprise Directory.
 - A restricted Tragofone client policy with audio calling, dialpad, local call history, enterprise contacts, and one-touch FusionPBX voicemail.
 
-It does not synchronize CDRs, IM, SMS/MMS, video, BLF, DND, call forwarding, or Tragofone Cloud Contacts. See [Supported features](supported-features.md) for the complete matrix.
+Phase 1 does not synchronize CDRs, IM, SMS/MMS, video, BLF, DND, call forwarding, or Tragofone Cloud Contacts. Phase 2 lets an authenticated user manage FusionPBX DND and forwarding through the companion portal; those controls are not synchronized into Tragofone's native UI. See [Supported features](supported-features.md) for the complete matrix.
 
 ## Roles and access
 
@@ -261,3 +261,9 @@ Authentication failure, `401`, or customer-ID mismatch can pause only the affect
 - Use **Paused** before planned Tragofone maintenance when jobs should not be processed.
 
 For operational failures, see [Troubleshooting](troubleshooting.md). For security ownership and threat boundaries, see [Security](security.md).
+
+## Phase 2 self-care
+
+Only a Superadmin can configure branding. Open **Global → Self-Care Portal**, enter the public HTTPS portal directory, upload an optional logo, set both theme palettes, choose forwarding/session policy, and save. The module queues existing eligible users for Account URL updates; company admins cannot override these global values.
+
+End users open **My Account** inside Tragofone. They can see their own extension/caller IDs, manage DND and approved forwarding, play or delete their own FusionPBX voicemail, and update voicemail email/PIN. They do not use FusionPBX credentials. When a session expires, they reopen My Account to obtain a fresh signed launch. See [Self-care portal](selfcare.md).

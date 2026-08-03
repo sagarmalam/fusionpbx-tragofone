@@ -32,3 +32,7 @@ The test leaves two active extensions, two active direct DID mappings, and one s
 | #7 extension renumbering | Immutable username/user ID plus updated SIP identity and mapping display tests; OpenAPI confirms `usr_username` is not updateable | Awaiting deployment to the disposable PBX |
 
 The live server remained reachable over HTTPS during this regression pass, but its SSH port was filtered from the test runner, so the updated build could not yet be installed there. Do not interpret automated success as completion of the live rows above.
+
+## Phase 2 validation status
+
+Phase 2 is covered by the PHP 8.1–8.3 unit/contract matrix for branding normalization and contrast, signed Account URLs and tampering, global configuration inheritance, feature-policy payloads, encrypted subjects, lifecycle reprovisioning, and public package/security invariants. Responsive light/dark mockups are stored under `docs/mockups/` and visually reviewed. Live Tragofone WebView launches, native FusionPBX forwarding/cache notifications, and both voicemail storage modes still require the disposable integration environment before production acceptance.

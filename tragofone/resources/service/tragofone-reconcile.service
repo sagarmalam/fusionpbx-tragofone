@@ -9,4 +9,5 @@ Group=www-data
 EnvironmentFile=-/etc/fusionpbx/tragofone.env
 WorkingDirectory=/var/www/fusionpbx
 ExecStart=/usr/bin/php /var/www/fusionpbx/app/tragofone/resources/jobs/reconcile.php
+ExecStart=/usr/bin/php /var/www/fusionpbx/app/tragofone/resources/jobs/cleanup.php
 NoNewPrivileges=true

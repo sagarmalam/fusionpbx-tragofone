@@ -44,4 +44,14 @@ final class FeaturePolicyTest extends TestCase {
 		);
 		self::assertSame('', $config['Sip']['sip_callerid']);
 	}
+
+	public function test_enables_only_the_signed_companion_account_url(): void {
+		$config = tragofone_feature_policy::configuration(
+			['extension'=>'1001','password'=>'secret','domain_name'=>'pbx.test'],
+			['sip_server'=>'','sip_port'=>5061,'sip_protocol'=>'tls','voicemail_code'=>'*97'], [],
+			['myaccount_status'=>'TRUE','myaccount_url'=>'https://pbx.test/app/tragofone/selfcare/launch.php?signed=1']
+		);
+		self::assertSame('TRUE',$config['account']['myaccount_status']);self::assertStringContainsString('/selfcare/launch.php',$config['account']['myaccount_url']);
+		self::assertSame('FALSE',$config['voicemail']['voicemail_status']);self::assertSame('FALSE',$config['CallForwarding']['callforwarding']);
+	}
 }

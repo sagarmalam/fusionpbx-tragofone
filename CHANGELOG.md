@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add the Phase 2 signed self-care portal with global light/dark branding embedded in each Tragofone Account URL.
+- Add per-extension one-time launch subjects, encrypted salts, server-side sessions, replay protection, rate limiting, CSRF protection, and session revocation.
+- Add responsive account summary, DND and forwarding, FusionPBX Visual Voicemail, voicemail email, and PIN self-care.
+- Add Superadmin branding controls, image validation, WCAG contrast checks, live previews, global reprovisioning, interactive mockups, and portal documentation.
+
 - Fix tenant outbound-proxy provisioning by exposing its server/port settings, defaulting blank proxy values to the resolved SIP endpoint, and including tenant SIP policy in extension change detection (#4).
 - Synchronize Effective Caller ID Name changes to the mapped Tragofone account name while keeping the mapping's current FusionPBX extension number accurate (#6).
 - Reuse the FusionPBX SIP password for Tragofone application login and rotate both through the existing user/configuration APIs (#3).

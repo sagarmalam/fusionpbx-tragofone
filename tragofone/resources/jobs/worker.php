@@ -11,5 +11,5 @@ $factory = static function (array $tenant) use ($crypto): tragofone_client {
 	}
 	return $client;
 };
-$worker = new tragofone_worker($store, $factory); $worker_id = gethostname().':'.getmypid();
+$worker = new tragofone_worker($store, $factory, $crypto); $worker_id = gethostname().':'.getmypid();
 while ($worker->run_once($worker_id)) { /* drain available jobs */ }

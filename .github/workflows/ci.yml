@@ -15,7 +15,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
-          extensions: curl, json, mbstring, pdo_pgsql, sodium
+          extensions: curl, fileinfo, json, mbstring, pdo_pgsql, sodium
       - run: composer install --no-interaction --prefer-dist
       - run: bash -n tragofone/resources/install/install.sh
       - run: composer lint

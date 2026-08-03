@@ -8,12 +8,32 @@ final class PackageLayoutTest extends TestCase {
 		self::assertFileExists($app.'/app_defaults.php');
 		self::assertFileExists($app.'/app_menu.php');
 		self::assertFileExists($app.'/index.php');
+		self::assertFileExists($app.'/selfcare/launch.php');
+		self::assertFileExists($app.'/selfcare/index.php');
+		self::assertFileExists($app.'/selfcare/assets/selfcare.css');
 	}
 
 	public function test_installer_resolves_native_app_not_repository_root(): void {
 		$installer = file_get_contents(dirname(__DIR__, 2).'/tragofone/resources/install/install.sh');
 		self::assertStringContainsString('/../.." && pwd)', $installer);
 		self::assertStringNotContainsString('/../../.." && pwd)', $installer);
+	}
+
+	public function test_public_voicemail_pages_use_opaque_message_handles(): void {
+		$app = dirname(__DIR__, 2).'/tragofone/selfcare';
+		$voicemail = file_get_contents($app.'/voicemail.php');
+		self::assertStringContainsString('voicemail_message_handle', $voicemail);
+		self::assertStringNotContainsString('rawurlencode($uuid)', $voicemail);
+		foreach (['media.php', 'confirm-delete.php', 'action.php'] as $page) {
+			self::assertStringContainsString('voicemail_message_from_handle', file_get_contents($app.'/'.$page), $page);
+		}
+	}
+
+	public function test_global_selfcare_controls_warn_and_support_salt_rotation(): void {
+		$page = file_get_contents(dirname(__DIR__, 2).'/tragofone/global_settings.php');
+		self::assertStringContainsString('Rotate Self-Care Salts', $page);
+		self::assertStringContainsString('Saving may update the Account URL for every synchronized Tragofone user', $page);
+		self::assertStringContainsString('selfcare.salts.rotate', $page);
 	}
 
 	public function test_pages_use_declared_permissions_and_portable_access_denied_response(): void {

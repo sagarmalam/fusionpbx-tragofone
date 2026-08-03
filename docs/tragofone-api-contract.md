@@ -28,3 +28,9 @@ The tested customer login response uses a top-level `access_token`; the client a
 The current FusionPBX SIP password is sent as `usr_password` on user creation/update and as `sip_auth_password` in SIP configuration. The API's 20-character application-password maximum is enforced before sending. Account-name changes use `user/update` with `user_id` and `usr_account_name`.
 
 The documented user-update request supports password, account name, status, profile, email, and phone fields, but not `usr_username`. Consequently, the application username is immutable; extension renumbering updates SIP configuration and the local mapping while retaining the existing Tragofone login and `usr_id`.
+
+## My Account configuration
+
+Phase 2 uses the existing `POST /api/customer/user/update-configurations` endpoint with `myaccount_status=TRUE` and a signed FusionPBX `myaccount_url`.
+
+The configured URL contains `tragofone_salt`. On mobile and desktop launch, Tragofone removes that parameter and appends `tragofone_hash=MD5(salt + epoch)` and `tragofone_time=<epoch>`. No new Tragofone endpoint or server change is required. The companion HMAC signs the raw theme fields because they are outside the documented Tragofone MD5 input.

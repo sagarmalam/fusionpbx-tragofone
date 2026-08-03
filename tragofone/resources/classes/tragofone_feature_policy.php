@@ -1,7 +1,7 @@
 <?php
 
 final class tragofone_feature_policy {
-	public static function configuration(array $extension, array $tenant, array $dids): array {
+	public static function configuration(array $extension, array $tenant, array $dids, ?array $selfcare_account = null): array {
 		$sip_server = trim((string) ($tenant['sip_server'] ?? ''));
 		if ($sip_server === '') { $sip_server = (string) $extension['domain_name']; }
 		$sip_port = (string) ($tenant['sip_port'] ?? 5061);
@@ -29,7 +29,7 @@ final class tragofone_feature_policy {
 			'textableintegration' => ['textable_integration' => 'FALSE'], 'CallForwarding' => ['callforwarding' => 'FALSE'],
 			'configurations' => ['configurations_dndVisibility' => 'FALSE', 'configurations_autoanswerVisibility' => 'FALSE'],
 			'blf' => ['autoenable_blf' => 'FALSE'], 'zoom' => ['zoom_status' => 'FALSE'],
-			'account' => ['myaccount_status' => 'FALSE'],
+			'account' => $selfcare_account ?? ['myaccount_status' => 'FALSE', 'myaccount_url' => ''],
 			'extendedsidepanel' => ['extendedsidepanel_status' => 'FALSE', 'extendedsidepanel_url' => ''],
 			'customlink' => ['customlink_status1' => 'FALSE', 'customlink_status2' => 'FALSE'],
 		];

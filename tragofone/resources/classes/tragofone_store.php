@@ -28,6 +28,9 @@ interface tragofone_store {
 	public function contact_mapping(string $domain_uuid, string $contact_uuid): ?array;
 	public function contact_mappings(string $domain_uuid): array;
 	public function save_contact_mapping(array $mapping): void;
+	public function selfcare_subject(string $domain_uuid, string $extension_uuid): ?array;
+	public function save_selfcare_subject(array $subject): void;
+	public function revoke_selfcare_subject(string $domain_uuid, string $extension_uuid): void;
 }
 
 /** Adapter around FusionPBX's database class. */
@@ -112,6 +115,14 @@ final class tragofone_fusionpbx_store implements tragofone_store {
 		return $this->select('select * from v_tragofone_contact_mappings where domain_uuid=:domain_uuid and deleted_at is null', compact('domain_uuid'));
 	}
 	public function save_contact_mapping(array $mapping): void { $this->upsert('v_tragofone_contact_mappings', 'mapping_uuid', $mapping); }
+	public function selfcare_subject(string $domain_uuid, string $extension_uuid): ?array {
+		return $this->first('select * from v_tragofone_selfcare_subjects where domain_uuid=:domain_uuid and extension_uuid=:extension_uuid order by insert_date desc limit 1', compact('domain_uuid', 'extension_uuid'));
+	}
+	public function save_selfcare_subject(array $subject): void { $this->upsert('v_tragofone_selfcare_subjects', 'subject_uuid', $subject); }
+	public function revoke_selfcare_subject(string $domain_uuid, string $extension_uuid): void {
+		$this->execute("update v_tragofone_selfcare_subjects set active=false, update_date=now() where domain_uuid=:domain_uuid and extension_uuid=:extension_uuid and active=true", compact('domain_uuid', 'extension_uuid'));
+		$this->execute("update v_tragofone_selfcare_sessions set revoked_at=now() where subject_uuid in (select subject_uuid from v_tragofone_selfcare_subjects where domain_uuid=:domain_uuid and extension_uuid=:extension_uuid) and revoked_at is null", compact('domain_uuid', 'extension_uuid'));
+	}
 
 	private function select(string $sql, array $parameters = []): array { return $this->database->select($sql, $parameters, 'all') ?: []; }
 	private function first(string $sql, array $parameters = []): ?array { $rows = $this->select($sql, $parameters); return $rows[0] ?? null; }

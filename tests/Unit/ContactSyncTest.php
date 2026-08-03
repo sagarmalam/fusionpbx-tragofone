@@ -38,6 +38,9 @@ final class contact_sync_store implements tragofone_store {
 	public function contact_mapping(string $domain_uuid, string $contact_uuid): ?array { return $this->mappings[$contact_uuid] ?? null; }
 	public function contact_mappings(string $domain_uuid): array { return array_values($this->mappings); }
 	public function save_contact_mapping(array $mapping): void { $this->mappings[$mapping['contact_uuid']] = $mapping; }
+	public function selfcare_subject(string $domain_uuid, string $extension_uuid): ?array { return null; }
+	public function save_selfcare_subject(array $subject): void {}
+	public function revoke_selfcare_subject(string $domain_uuid, string $extension_uuid): void {}
 }
 
 final class contact_sync_transport implements tragofone_http_transport {

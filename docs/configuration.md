@@ -15,7 +15,7 @@ Open **Tenant Settings → Manage Extensions** to choose which FusionPBX SIP ext
 
 Saving the extension list creates tenant-scoped policies keyed by `extension_uuid`. Excluding an extension that has never been provisioned creates no Tragofone user. Excluding an existing mapping disables the Tragofone user and marks it `excluded`; it does not delete the user or mapping. Selecting it again re-enables and reconfigures the same Tragofone `usr_id`. The FusionPBX extension's own Enabled/Disabled state remains authoritative in addition to this selection.
 
-Extension selection affects SIP-user and direct-DID provisioning only. The tenant-wide FusionPBX phonebook continues to follow the tenant enable/pause state.
+Extension selection affects SIP-user, direct-DID, and self-care provisioning. Excluding an extension disables its Tragofone My Account link and revokes companion self-care sessions. The tenant-wide FusionPBX phonebook continues to follow the tenant enable/pause state.
 
 Changing the SIP server, SIP port, transport, outbound proxy, profile, or voicemail code invalidates the tenant's feature-policy hash and queues configuration updates for selected extensions. Changing an extension's **Effective Caller ID Name** updates the mapped Tragofone account name through the existing user-update API.
 
@@ -26,3 +26,11 @@ Effective Outbound Caller ID is trusted as configured in FusionPBX and is sent f
 The shared FusionPBX phonebook uses the same tenant company-admin credentials through the customer enterprise-directory API. No dedicated app user is needed on the validated deployment. Missing contact tables or a contact-specific failure never blocks SIP/DID processing. Tragofone Cloud Contacts remain disabled; phonebook records are tenant-wide Enterprise Directory entries.
 
 The encryption key lives only in `/etc/fusionpbx/tragofone.env`, owned by `root:www-data` with mode `0640`. Changing it without re-entering credentials makes saved ciphertext unreadable.
+
+## Global self-care
+
+Self-care settings are global and Superadmin-only; unlike the Tragofone API endpoint and credentials, they are never inherited or overridden per tenant. Configure the public HTTPS portal directory, name, logo, light/dark background and foreground, button colors, external-forwarding prefixes, and session timeouts. Color pairs must meet 4.5:1 contrast.
+
+The default forwarding policy is either same-company extensions only or same-company extensions plus approved external prefixes. **Rotate Self-Care Salts** revokes active sessions and asynchronously installs new signed Account URLs for eligible users.
+
+Saving a branding or enable-state change increments the global brand version and queues configuration updates for every enabled, selected, synchronized extension. The generated Account URL contains the raw global values plus a per-user subject, salt, and companion signature. See [Self-care portal](selfcare.md).

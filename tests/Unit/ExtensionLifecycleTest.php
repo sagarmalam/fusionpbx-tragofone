@@ -15,9 +15,11 @@ final class extension_lifecycle_store implements tragofone_store {
 	public array $failed = [];
 	public array $paused = [];
 	public array $did_map = [];
+	public array $selfcare_subjects = [];
+	public array $tenant_config = [];
 
 	public function enabled_tenants(): array { return []; }
-	public function tenant(string $domain_uuid): ?array { return ['domain_uuid' => $domain_uuid, 'default_profile_id' => 1, 'sip_server' => 'pbx.test', 'sip_port' => 5061, 'sip_protocol' => 'tls', 'voicemail_code' => '*97']; }
+	public function tenant(string $domain_uuid): ?array { return array_replace(['domain_uuid' => $domain_uuid, 'default_profile_id' => 1, 'sip_server' => 'pbx.test', 'sip_port' => 5061, 'sip_protocol' => 'tls', 'voicemail_code' => '*97'], $this->tenant_config); }
 	public function changed_extensions(string $domain_uuid, ?string $since): array { return $this->extensions; }
 	public function destinations(string $domain_uuid): array { return $this->destination_rows; }
 	public function extension_sync_policies(string $domain_uuid): array { return $this->sync_policies; }
@@ -52,6 +54,9 @@ final class extension_lifecycle_store implements tragofone_store {
 	public function contact_mapping(string $domain_uuid, string $contact_uuid): ?array { return null; }
 	public function contact_mappings(string $domain_uuid): array { return []; }
 	public function save_contact_mapping(array $mapping): void {}
+	public function selfcare_subject(string $domain_uuid, string $extension_uuid): ?array { return $this->selfcare_subjects[$extension_uuid] ?? null; }
+	public function save_selfcare_subject(array $subject): void { $this->selfcare_subjects[$subject['extension_uuid']] = $subject; }
+	public function revoke_selfcare_subject(string $domain_uuid, string $extension_uuid): void { if (isset($this->selfcare_subjects[$extension_uuid])) { $this->selfcare_subjects[$extension_uuid]['active'] = false; } }
 }
 
 final class extension_lifecycle_transport implements tragofone_http_transport {
@@ -123,7 +128,7 @@ final class ExtensionLifecycleTest extends TestCase {
 
 	public function test_same_uuid_returning_during_grace_is_reenabled_even_when_hash_is_unchanged(): void {
 		$store = new extension_lifecycle_store(); $store->extension_map['ext-1'] = $this->mapping('ext-1', 'deletion_pending'); $store->extensions = [$this->extension('ext-1', true)];
-		$hash = tragofone_normalizer::hash(['extension'=>$store->extensions[0], 'dids'=>['1001'], 'sync_enabled'=>true, 'tenant_policy'=>[], 'policy_version'=>5]);
+		$hash = tragofone_normalizer::hash(['extension'=>$store->extensions[0], 'dids'=>['1001'], 'sync_enabled'=>true, 'tenant_policy'=>[], 'policy_version'=>6]);
 		$store->snapshots['extension:ext-1'] = ['snapshot_uuid'=>'snapshot-1','record_hash'=>$hash];
 		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1'], null));
 		self::assertSame('enable_user', $store->jobs[0]['operation']);
@@ -256,6 +261,19 @@ final class ExtensionLifecycleTest extends TestCase {
 		self::assertSame('SharedSipPassword!', $create['usr_password']);
 		self::assertSame('SharedSipPassword!', $configuration['configurations']['sip_auth_password']);
 		self::assertSame('1001@company.test', $store->extension_map['ext-1']['tragofone_username']);
+	}
+
+	public function test_worker_provisions_a_signed_global_selfcare_url(): void {
+		$store = new extension_lifecycle_store();
+		$store->tenant_config = ['selfcare_enabled'=>true,'selfcare_base_url'=>'https://pbx.example/app/tragofone/selfcare','selfcare_brand_version'=>4,...tragofone_selfcare_theme::DEFAULTS];
+		$store->claimed_job = ['job_uuid'=>'selfcare-create','domain_uuid'=>'domain-1','entity_type'=>'extension','entity_uuid'=>'ext-1','operation'=>'create_user','payload'=>json_encode(['extension'=>$this->extension(),'dids'=>[]],JSON_THROW_ON_ERROR),'record_hash'=>'selfcare-hash','attempt_count'=>0];
+		$transport = new extension_lifecycle_transport(); $transport->responses = [
+			['status'=>200,'headers'=>[],'body'=>'{"access_token":"a"}'],['status'=>200,'headers'=>[],'body'=>'{"data":{"usr_id":9,"cust_id":1}}'],['status'=>200,'headers'=>[],'body'=>'{"status":"SUCCESS"}'],
+		];
+		$factory=static function()use($transport):tragofone_client{$client=new tragofone_client('https://trago.test',$transport);$client->customer_login('company','password');return $client;};
+		self::assertTrue((new tragofone_worker($store,$factory,new tragofone_crypto(str_repeat('k',32))))->run_once('worker'));
+		$configuration=json_decode($transport->requests[2]['body'],true,512,JSON_THROW_ON_ERROR)['configurations'];
+		self::assertSame('TRUE',$configuration['myaccount_status']);self::assertStringContainsString('brand_v=4',$configuration['myaccount_url']);self::assertStringContainsString('tragofone_salt=',$configuration['myaccount_url']);self::assertTrue($store->selfcare_subjects['ext-1']['active']);
 	}
 
 	public function test_delete_is_idempotent_when_tragofone_already_removed_the_user(): void {

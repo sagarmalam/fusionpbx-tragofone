@@ -19,8 +19,12 @@ final class tragofone_scanner {
 			$tenant_policy = array_intersect_key($tenant, array_flip([
 				'default_profile_id', 'sip_server', 'sip_port', 'sip_protocol',
 				'outbound_proxy_server', 'outbound_proxy_port', 'voicemail_code',
+				'selfcare_enabled', 'selfcare_base_url', 'selfcare_brand_name', 'selfcare_light_background',
+				'selfcare_light_foreground', 'selfcare_light_button', 'selfcare_light_button_foreground',
+				'selfcare_dark_background', 'selfcare_dark_foreground', 'selfcare_dark_button',
+				'selfcare_dark_button_foreground', 'selfcare_brand_version',
 			]));
-			$source = ['extension' => $extension, 'dids' => $dids, 'sync_enabled' => $sync_enabled, 'tenant_policy' => $tenant_policy, 'policy_version' => 5];
+			$source = ['extension' => $extension, 'dids' => $dids, 'sync_enabled' => $sync_enabled, 'tenant_policy' => $tenant_policy, 'policy_version' => 6];
 			$hash = tragofone_normalizer::hash($source);
 			$previous = $this->store->snapshot($domain_uuid, 'extension', $extension_uuid);
 			$mapping = $this->store->extension_mapping($domain_uuid, $extension_uuid);

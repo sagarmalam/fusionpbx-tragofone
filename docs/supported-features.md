@@ -23,9 +23,25 @@
 | Tragofone-hosted voicemail | Disabled |
 | FusionPBX CDR synchronization | Not supported |
 | BLF/presence | Not supported |
-| DND/call-forward synchronization | Not supported |
+| Tragofone-native DND/call-forward synchronization | Not supported; use the Phase 2 companion portal |
 | Bidirectional FusionPBX administration | Not supported |
 
 Operational controls include tenant pause/resume, per-extension selection, manual reconciliation, failed-job retry, deletion grace, one-time `401` reauthentication, and expired-lock recovery.
 
 The integration synchronizes only SIP/application credentials, supported enterprise contacts, Effective Outbound Caller ID, and direct DID caller IDs. Call history remains local to the softphone.
+
+## Phase 2 self-care
+
+| Feature | Status |
+|---|---|
+| Signed Tragofone My Account launch | Supported |
+| Global light/dark branding embedded in Account URL | Supported |
+| Account, extension, DID, and caller-ID summary | Supported, read-only |
+| DND and all/busy/no-answer/not-registered forwarding | Supported |
+| External forwarding | Conditional on global prefix policy |
+| Visual Voicemail playback/download/read/delete | Supported when FusionPBX voicemail schema and media are available |
+| Voicemail notification email and PIN | Supported |
+| Tenant-specific branding | Not supported; branding is global |
+| Server recordings and CDR history | Not supported in this release |
+| Voicemail greeting management | Not supported in this release |
+| Native Tragofone Visual Voicemail | Not supported in this release |
