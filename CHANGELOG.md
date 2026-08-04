@@ -18,6 +18,7 @@
 - Treat HTTP 200 application-error envelopes as API failures and reject user creation responses without a positive `usr_id`.
 - Fix clearing a self-care voicemail notification address and prevent intrinsic mobile navigation overflow at 320px.
 - Remove the manual logout control from the Tragofone-embedded self-care header; sessions continue to expire or revoke through the existing security policy.
+- Add an authenticated, tenant-isolated self-care QR view so users can enroll another Tragofone device without opening the administrative portal.
 
 - Fix tenant outbound-proxy provisioning by exposing its server/port settings, defaulting blank proxy values to the resolved SIP endpoint, and including tenant SIP policy in extension change detection (#4).
 - Synchronize Effective Caller ID Name changes to the mapped Tragofone account name while keeping the mapping's current FusionPBX extension number accurate (#6).

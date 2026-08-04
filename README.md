@@ -21,6 +21,7 @@ Private, native FusionPBX application for tenant-aware Tragofone provisioning. I
 - Globally branded, signed Tragofone My Account portal with responsive light/dark themes
 - Inherit/Yes/No self-care access policy at global, domain, and individual-user levels
 - Extension-scoped DND, call forwarding, Visual Voicemail, voicemail email, and PIN self-care
+- Session-owned self-care QR display for enrolling another Tragofone device
 
 No FusionPBX licensed API, remote database access, FusionPBX core patch, or Tragofone server change is required.
 

@@ -32,7 +32,7 @@ From Tragofone, open **My Account**. A valid launch opens four responsive tabs:
 - **Home:** display name, extension, Effective Outbound Caller ID, direct DIDs, mailbox, DND, and forwarding summary.
 - **Call handling:** DND and always/busy/no-answer/not-registered forwarding. Internal destinations must belong to the same company; external numbers must match the Superadmin prefix policy.
 - **Voicemail:** owned message list, caller and time, duration, transcription when present, playback, download, read/unread, and confirmed permanent deletion.
-- **Settings:** one notification email and a new voicemail PIN. The current PIN is never displayed.
+- **Settings:** one notification email, a new voicemail PIN, and an on-demand QR code for logging in on another Tragofone device. The current PIN is never displayed and the QR is never stored.
 
 The portal follows the WebView/device light or dark preference. There is no portal theme switch. When the session expires, return to Tragofone and open My Account again.
 

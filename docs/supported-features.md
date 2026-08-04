@@ -43,6 +43,7 @@ The integration synchronizes SIP/application credentials, supported enterprise c
 | Signed Tragofone My Account launch | Supported |
 | Global light/dark branding referenced by signed Account URL version | Supported; compact URL stays within the 200-character API limit |
 | Global/domain/user self-care access | Supported; Inherit/Yes/No with user-first precedence |
+| Self-care QR for another device | Supported for the authenticated synchronized user; displayed on demand and never stored |
 | Account, extension, DID, and caller-ID summary | Supported, read-only |
 | DND and all/busy/no-answer/not-registered forwarding | Supported |
 | External forwarding | Conditional on global prefix policy |

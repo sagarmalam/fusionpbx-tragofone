@@ -101,6 +101,17 @@ final class tragofone_selfcare_repository {
 		];
 	}
 
+	/** @return array{bytes:string,mime_type:string,extension:string,base64:string} */
+	public function device_login_qr(array $session): array {
+		$domain_uuid=(string)($session['domain_uuid']??'');$extension_uuid=(string)($session['extension_uuid']??'');
+		if(!self::uuid_valid($domain_uuid)||!self::uuid_valid($extension_uuid)){throw new RuntimeException('Device login QR is unavailable.');}
+		$mapping=$this->row("select m.tragofone_user_id from v_tragofone_extension_mappings m join v_extensions e on e.domain_uuid=m.domain_uuid and e.extension_uuid=m.extension_uuid where m.domain_uuid=:domain_uuid and m.extension_uuid=:extension_uuid and m.deleted_at is null and m.sync_status='synchronized' and e.enabled=true limit 1",compact('domain_uuid','extension_uuid'));
+		$user_id=$mapping['tragofone_user_id']??null;if(!is_numeric($user_id)||(int)$user_id<=0){throw new RuntimeException('Device login QR is unavailable.');}
+		$tenant=(new tragofone_fusionpbx_store($this->database))->tenant($domain_uuid);if($tenant===null){throw new RuntimeException('Device login QR is temporarily unavailable.');}
+		$client=tragofone_customer_client_factory::create($tenant,$this->crypto);$qr=tragofone_qr_code::from_response($client->get_qr_code((int)$user_id));
+		$this->audit($session,'selfcare.qr.view','Tragofone device login QR viewed in self-care.');return $qr;
+	}
+
 	public function call_state(array $session): array {
 		$row = $this->row('select update_date,do_not_disturb,follow_me_enabled,forward_all_enabled,forward_all_destination,forward_busy_enabled,forward_busy_destination,forward_no_answer_enabled,forward_no_answer_destination,forward_user_not_registered_enabled,forward_user_not_registered_destination from v_extensions where domain_uuid=:domain_uuid and extension_uuid=:extension_uuid', ['domain_uuid'=>$session['domain_uuid'],'extension_uuid'=>$session['extension_uuid']]);
 		if ($row === null) { throw new RuntimeException('Extension call handling is unavailable.'); }

@@ -17,6 +17,7 @@
 - Treat Tragofone enrollment QR codes as credentials. Preview, download, and email actions require separate declared permissions, an active FusionPBX session, domain ownership of the mapped extension, synchronized status, and CSRF validation.
 - Fetch QR images on demand from the mapped Tragofone `user_id`; accept only validated PNG/JPEG/WebP content within strict size/dimension limits and send `no-store`, `no-referrer`, and MIME-sniffing protection headers.
 - Never persist QR data. Direct email delivery intentionally bypasses the FusionPBX email queue so the attachment is not retained in queue tables; SMTP must therefore be configured and reachable during the request.
+- The self-care QR route derives the Tragofone user ID only from the authenticated extension session, requires CSRF-protected POST, applies request rate limiting, rechecks the active synchronized mapping and tenant, and never accepts a user or mapping identifier from the browser.
 
 Threat-model and penetration-test the target deployment before production activation.
 

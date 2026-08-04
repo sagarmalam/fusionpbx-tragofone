@@ -36,6 +36,17 @@ final class PackageLayoutTest extends TestCase {
 		self::assertStringNotContainsString("case 'logout'", strtolower(file_get_contents($app.'/action.php')));
 	}
 
+	public function test_selfcare_device_qr_is_session_owned_and_csrf_protected(): void {
+		$app = dirname(__DIR__, 2).'/tragofone/selfcare';
+		$page = file_get_contents($app.'/device.php');
+		self::assertStringContainsString('sc_require_session()', $page);
+		self::assertStringContainsString('verify_csrf', $page);
+		self::assertStringContainsString('device_login_qr($session)', $page);
+		self::assertStringNotContainsString("\$_GET['id']", $page);
+		self::assertStringNotContainsString("\$_POST['user_id']", $page);
+		self::assertStringContainsString('device.php', file_get_contents($app.'/settings.php'));
+	}
+
 	public function test_global_selfcare_controls_warn_and_support_salt_rotation(): void {
 		$page = file_get_contents(dirname(__DIR__, 2).'/tragofone/global_settings.php');
 		self::assertStringContainsString('Rotate Self-Care Salts', $page);
