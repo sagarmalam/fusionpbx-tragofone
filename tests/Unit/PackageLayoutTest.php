@@ -30,6 +30,12 @@ final class PackageLayoutTest extends TestCase {
 		}
 	}
 
+	public function test_selfcare_has_no_manual_logout_control(): void {
+		$app = dirname(__DIR__, 2).'/tragofone/selfcare';
+		self::assertStringNotContainsString('logout', strtolower(file_get_contents($app.'/_layout.php')));
+		self::assertStringNotContainsString("case 'logout'", strtolower(file_get_contents($app.'/action.php')));
+	}
+
 	public function test_global_selfcare_controls_warn_and_support_salt_rotation(): void {
 		$page = file_get_contents(dirname(__DIR__, 2).'/tragofone/global_settings.php');
 		self::assertStringContainsString('Rotate Self-Care Salts', $page);

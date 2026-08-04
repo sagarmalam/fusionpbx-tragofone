@@ -5,7 +5,6 @@ if(!$sc_repository->verify_csrf($session,$_POST['csrf']??null)){http_response_co
 $action=isset($_POST['action'])&&!is_array($_POST['action'])?(string)$_POST['action']:'';$target='index.php';
 try{
 	switch($action){
-		case 'logout':$sc_repository->revoke_session((string)$session['session_uuid']);sc_clear_cookie();sc_redirect('expired.php');
 		case 'save_calls':$sc_repository->update_call_state($session,$_POST);$target='calls.php';$message='Call handling saved.';break;
 		case 'save_voicemail':$sc_repository->update_voicemail_settings($session,(string)($_POST['email']??''),(string)($_POST['pin']??''));$target='settings.php';$message='Voicemail settings saved.';break;
 		case 'message_read':$owned=$sc_repository->voicemail_message_from_handle($session,(string)($_POST['id']??''));if($owned===null){throw new RuntimeException('Voicemail message was not found.');}$sc_repository->set_message_read($session,(string)$owned['voicemail_message_uuid'],sc_bool($_POST['read']??false));$target='voicemail.php';$message='Voicemail status updated.';break;
