@@ -3,6 +3,10 @@
 final class tragofone_selfcare_conflict_exception extends RuntimeException {}
 
 final class tragofone_selfcare_repository {
+	public const DEFAULT_SESSION_SECONDS = 86400;
+	public const MAX_SESSION_SECONDS = 86400;
+	public const MIN_SESSION_SECONDS = 300;
+
 	public function __construct(private readonly database $database, private readonly tragofone_crypto $crypto) {}
 
 	public function global_config(): array {
@@ -43,7 +47,8 @@ final class tragofone_selfcare_repository {
 	}
 
 	public function create_session(array $subject, array $theme, int $idle_seconds, int $absolute_seconds, string $remote_address, string $user_agent): array {
-		$idle_seconds = min(3600, max(300, $idle_seconds)); $absolute_seconds = min(86400, max($idle_seconds, $absolute_seconds));
+		$idle_seconds = min(self::MAX_SESSION_SECONDS, max(self::MIN_SESSION_SECONDS, $idle_seconds));
+		$absolute_seconds = min(self::MAX_SESSION_SECONDS, max($idle_seconds, $absolute_seconds));
 		$session_uuid = tragofone_scanner::uuid(); $secret = self::random_token(); $csrf = hash_hmac('sha256', 'csrf', $secret);
 		$record = [
 			'session_uuid'=>$session_uuid, 'subject_uuid'=>$subject['subject_uuid'], 'token_hash'=>hash('sha256', $secret),
@@ -74,7 +79,7 @@ final class tragofone_selfcare_repository {
 		if (!tragofone_selfcare_policy::enabled(tragofone_selfcare_policy::global($config), $row['domain_selfcare_policy'] ?? 'inherit', $row['user_selfcare_policy'] ?? 'inherit')) { return null; }
 		if (!hash_equals((string) $row['ip_hash'], $this->crypto->fingerprint('selfcare-session-ip', $remote_address))
 			|| !hash_equals((string) $row['user_agent_hash'], $this->crypto->fingerprint('selfcare-session-agent', $user_agent))) { return null; }
-		$idle = min(3600, max(300, (int) ($config['selfcare_session_idle_seconds'] ?? 900)));
+		$idle = min(self::MAX_SESSION_SECONDS, max(self::MIN_SESSION_SECONDS, (int) ($config['selfcare_session_idle_seconds'] ?? self::DEFAULT_SESSION_SECONDS)));
 		$this->execute('update v_tragofone_selfcare_sessions set last_seen_at=now(),idle_expires_at=least(now() + (:idle || \' seconds\')::interval,absolute_expires_at) where session_uuid=:session_uuid', ['idle'=>$idle,'session_uuid'=>$row['session_uuid']]);
 		$row['csrf'] = hash_hmac('sha256', 'csrf', $matches[2]);
 		$row['theme'] = json_decode((string) $row['theme_payload'], true) ?: [];

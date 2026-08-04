@@ -31,7 +31,7 @@ The encryption key lives only in `/etc/fusionpbx/tragofone.env`, owned by `root:
 
 ## Global self-care
 
-Branding and portal security settings are global and Superadmin-only; they cannot be overridden per tenant. Self-care access itself can be set to **Inherit**, **Yes**, or **No** globally, per domain, and per user. Configure the public HTTPS portal directory, name, logo, light/dark background and foreground, button colors, external-forwarding prefixes, and session timeouts. Color pairs must meet 4.5:1 contrast.
+Branding and portal security settings are global and Superadmin-only; they cannot be overridden per tenant. Self-care access itself can be set to **Inherit**, **Yes**, or **No** globally, per domain, and per user. Configure the public HTTPS portal directory, name, logo, light/dark background and foreground, button colors, external-forwarding prefixes, and session timeouts. Idle and absolute session timeouts default to 86400 seconds (24 hours), remain configurable from 300 to 86400 seconds, and are still subject to access revocation. Color pairs must meet 4.5:1 contrast.
 
 The default forwarding policy is either same-company extensions only or same-company extensions plus approved external prefixes. **Rotate Self-Care Salts** revokes active sessions and asynchronously installs new signed Account URLs for eligible users.
 

@@ -33,7 +33,7 @@ try {
 	if (!tragofone_selfcare_policy::enabled(tragofone_selfcare_policy::global($config), $subject['domain_selfcare_policy'] ?? 'inherit', $subject['user_selfcare_policy'] ?? 'inherit')) { throw new RuntimeException('Self-care is disabled.'); }
 	tragofone_selfcare_theme::validate_logo_url((string) $theme['brand_logo'], (string) $config['selfcare_base_url']);
 	if (!$sc_repository->consume_assertion($scid, $time, $hash)) { throw new RuntimeException('Signed launch was already used.'); }
-	$session = $sc_repository->create_session($subject, $theme, (int) ($config['selfcare_session_idle_seconds'] ?? 900), (int) ($config['selfcare_session_absolute_seconds'] ?? 3600), sc_remote_address(), sc_user_agent());
+	$session = $sc_repository->create_session($subject, $theme, (int) ($config['selfcare_session_idle_seconds'] ?? tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS), (int) ($config['selfcare_session_absolute_seconds'] ?? tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS), sc_remote_address(), sc_user_agent());
 	sc_set_cookie($session['cookie']); sc_redirect($compact ? 'selfcare/index.php' : 'index.php');
 } catch (Throwable $error) {
 	http_response_code(http_response_code() === 429 ? 429 : 403);

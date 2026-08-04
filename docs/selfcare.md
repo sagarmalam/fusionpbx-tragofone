@@ -12,7 +12,7 @@ The Phase 2 portal is a public FusionPBX route opened by Tragofone My Account. P
 4. Set the global portal name and optionally upload a PNG, JPEG, or WebP logo.
 5. Enter light and dark background, text, button, and button-text colors. The form rejects invalid hexadecimal values and color pairs below WCAG AA contrast.
 6. Choose whether external forwarding is allowed. If enabled, enter comma-separated prefixes such as `+1,+44`; same-company internal extensions remain allowed.
-7. Set idle and absolute session timeouts and save.
+7. Set idle and absolute session timeouts and save. Both default to 86400 seconds (24 hours); shorter values can be selected from 300 seconds upward.
 8. Review queued jobs and mappings. Every eligible synchronized extension should receive `myaccount_status=TRUE` and a compact signed `myaccount_url` referencing the current global theme version.
 
 Branding is global. Company admins cannot override it. Saving a theme, logo, portal name, URL, or enable-state change increments the brand version and queues all eligible users for asynchronous reprovisioning.

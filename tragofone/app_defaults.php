@@ -24,8 +24,8 @@ $defaults = [
 	['selfcare', 'dark_button', '6EA8FE', 'text'],
 	['selfcare', 'dark_button_foreground', '08101F', 'text'],
 	['selfcare', 'external_forwarding', 'false', 'boolean'],
-	['selfcare', 'session_idle_seconds', '900', 'numeric'],
-	['selfcare', 'session_absolute_seconds', '3600', 'numeric'],
+	['selfcare', 'session_idle_seconds', '86400', 'numeric'],
+	['selfcare', 'session_absolute_seconds', '86400', 'numeric'],
 ];
 
 foreach ($defaults as [$category, $subcategory, $value, $type]) {
