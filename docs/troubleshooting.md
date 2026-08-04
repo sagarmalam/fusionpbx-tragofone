@@ -19,5 +19,8 @@
 - **Portal immediately expires:** confirm HTTPS, cookie support in the Tragofone WebView, stable source IP/user agent during the session, and configured idle/absolute timeouts.
 - **Visual Voicemail unavailable:** verify enabled `v_voicemails` and `v_voicemail_messages` records, PHP-FPM read access to the FusionPBX voicemail storage directory, and database/base64 storage configuration.
 - **Forwarding rejected:** internal destinations must be enabled extensions in the same domain. External destinations require the global enable flag and an allowed prefix.
+- **Open QR is unavailable:** the extension must have a companion mapping with `synchronized` status, and the signed-in group must have `tragofone_qr_view`. Rerun the FusionPBX upgrade and `upgrade.php -g` after installing the update.
+- **QR response is rejected:** confirm the configured Tragofone server supports `customer/user/get-qr-code` and returns a PNG, JPEG, or WebP base64/data-URI image. The companion rejects URLs, SVG, malformed images, files over 2 MB, and images over 4096 × 4096.
+- **QR email fails:** preview or download first to prove the Tragofone API path, then verify FusionPBX SMTP settings. QR email is sent directly and intentionally does not enter the persistent FusionPBX email queue.
 
 Use correlation/job UUIDs when gathering diagnostics. Never attach raw request bodies containing credentials.

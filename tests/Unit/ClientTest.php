@@ -56,6 +56,46 @@ final class ClientTest extends TestCase {
 		self::assertSame('DELETE', $transport->requests[3]['method']);
 	}
 
+	public function test_fetches_qr_code_for_the_mapped_user_id(): void {
+		$transport = new fake_transport();
+		$transport->responses = [
+			['status'=>200,'headers'=>[],'body'=>'{"access_token":"abc"}'],
+			['status'=>200,'headers'=>[],'body'=>'{"data":{"qr_code":"image"}}'],
+		];
+		$client = new tragofone_client('https://trago.test', $transport); $client->customer_login('company', 'password');
+		self::assertSame(['data'=>['qr_code'=>'image']], $client->get_qr_code(91));
+		$request = $transport->requests[1];
+		self::assertSame('/api/customer/user/get-qr-code', parse_url($request['url'], PHP_URL_PATH));
+		self::assertSame(['user_id'=>91], json_decode($request['body'], true, 512, JSON_THROW_ON_ERROR));
+	}
+
+	public function test_customer_client_factory_verifies_tenant_identity(): void {
+		$transport = new fake_transport(); $crypto = new tragofone_crypto(str_repeat('k', 32));
+		$transport->responses = [
+			['status'=>200,'headers'=>[],'body'=>'{"access_token":"abc"}'],
+			['status'=>200,'headers'=>[],'body'=>'{"data":{"cust_id":17}}'],
+		];
+		$client = tragofone_customer_client_factory::create([
+			'base_url'=>'https://trago.test', 'customer_username'=>'company',
+			'encrypted_customer_password'=>$crypto->encrypt('password'), 'expected_customer_id'=>17,
+		], $crypto, $transport);
+		self::assertInstanceOf(tragofone_client::class, $client);
+		self::assertCount(2, $transport->requests);
+	}
+
+	public function test_customer_client_factory_rejects_cross_tenant_identity(): void {
+		$transport = new fake_transport(); $crypto = new tragofone_crypto(str_repeat('k', 32));
+		$transport->responses = [
+			['status'=>200,'headers'=>[],'body'=>'{"access_token":"abc"}'],
+			['status'=>200,'headers'=>[],'body'=>'{"data":{"cust_id":18}}'],
+		];
+		$this->expectException(tragofone_tenant_identity_exception::class);
+		tragofone_customer_client_factory::create([
+			'base_url'=>'https://trago.test', 'customer_username'=>'company',
+			'encrypted_customer_password'=>$crypto->encrypt('password'), 'expected_customer_id'=>17,
+		], $crypto, $transport);
+	}
+
 	public function test_reauthenticates_once_after_authenticated_401(): void {
 		$transport = new fake_transport();
 		$transport->responses = [

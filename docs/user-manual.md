@@ -10,6 +10,7 @@ For each enabled FusionPBX domain, the module can synchronize:
 - Directly assigned inbound DIDs as Tragofone caller-ID choices.
 - The shared FusionPBX phonebook to the Tragofone Enterprise Directory.
 - A restricted Tragofone client policy with audio calling, dialpad, local call history, enterprise contacts, and one-touch FusionPBX voicemail.
+- On-demand Tragofone QR enrollment that can be previewed, downloaded from FusionPBX, or sent through FusionPBX SMTP.
 
 Phase 1 does not synchronize CDRs, IM, SMS/MMS, video, BLF, DND, call forwarding, or Tragofone Cloud Contacts. Phase 2 lets an authenticated user manage FusionPBX DND and forwarding through the companion portal; those controls are not synchronized into Tragofone's native UI. See [Supported features](supported-features.md) for the complete matrix.
 
@@ -26,6 +27,7 @@ The **Tragofone Integration** menu is visible by default to both the FusionPBX `
 | Select extensions | Yes | Yes, for the active authorized domain |
 | View mappings and jobs | Yes | Yes, for the active authorized domain |
 | Retry jobs and run reconciliation | Yes | Yes, for the active authorized domain |
+| Preview, download, or email a synchronized user's QR login | Yes | Yes, for the active authorized domain |
 
 If the intended policy is **Superadmin-only module access**, remove the Tragofone permissions and menu access from the FusionPBX `admin` group. That is a deployment policy change and disables the Company administrator workflow described in this manual.
 
@@ -68,6 +70,7 @@ The overview provides these pages:
 | Global Settings | Optional defaults available only to Superadmins |
 | Tenant Settings | Tragofone connection and provisioning behavior for the active domain |
 | Extension Sync | Select the extensions allowed to synchronize |
+| QR Login | Opened from a synchronized extension to preview, download, or email its live Tragofone QR |
 | Mappings | Inspect companion-owned extension, DID, and contact identifiers |
 | Jobs | Inspect background operations and retry eligible failures |
 | Reconciliation | Compare FusionPBX state with companion mappings and queue repairs |
@@ -148,7 +151,19 @@ Extension selection has these safety rules:
 - The FusionPBX extension's own Enabled/Disabled state remains authoritative.
 - Extension selection affects SIP and DID synchronization. The shared company phonebook remains tenant-wide.
 
-### 5. Verify initial synchronization
+### 5. Deliver a QR login
+
+After an extension reaches `synchronized` status, open **Extension Sync** and select **Open QR** on that user.
+
+1. Select **Show QR Code** to retrieve a fresh QR directly from Tragofone.
+2. Let the intended user scan the code from the screen, or select **Download QR** to download the validated image from FusionPBX.
+3. To deliver it by email, confirm or enter one recipient address and select **Email QR**. The page initially suggests the email of an enabled FusionPBX user assigned to the extension, then the mailbox notification email when available.
+
+Email delivery uses the active domain's FusionPBX SMTP settings and occurs immediately. The QR attachment is deliberately not added to the persistent FusionPBX email queue. If SMTP delivery fails, download the QR securely or correct SMTP and try again.
+
+Treat the QR like a password: show or send it only to the intended user, avoid screenshots and tickets, and delete downloaded/email copies after enrollment. The companion fetches the QR on demand and never saves its image in its own database, jobs, or logs. Preview, download, and email events are recorded without the image or recipient address.
+
+### 6. Verify initial synchronization
 
 Open **Mappings** and confirm:
 

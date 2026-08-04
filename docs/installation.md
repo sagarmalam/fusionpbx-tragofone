@@ -24,6 +24,7 @@ PHP 8.1 is the code-level minimum, but it is end-of-life upstream. For a product
 - Bash, OpenSSL CLI, and standard Linux commands (`install`, `cp`, `chown`, `chmod`, `sed`, and `systemctl`).
 - Outbound HTTPS connectivity from the FusionPBX host to the Tragofone server.
 - The Tragofone HTTPS base URL, company-admin username/password, expected customer ID, and profile ID for each company that will synchronize.
+- Working FusionPBX SMTP settings when administrators will email QR enrollment codes. Preview and download do not require SMTP.
 - A backup before upgrading or replacing an existing companion installation.
 
 No Composer installation is needed on the FusionPBX server; the deployed application does not load development dependencies.
@@ -164,6 +165,7 @@ Use the same `PHP_BIN` and `FUSIONPBX_ROOT` values supplied to the installer on 
 6. Run **Reconciliation**, then inspect **Jobs** and **Mappings**.
 7. Confirm the created Tragofone user, shared application/SIP password, SIP registration, Effective Outbound Caller ID and direct-DID choices, restricted feature policy, one-touch voicemail, and supported shared phonebook entries.
 8. To enable Phase 2, open **Global Settings → Self-Care Portal**, enter the public HTTPS URL ending in `/app/tragofone/selfcare`, configure branding, save, and verify that synchronization updates `myaccount_status` and `myaccount_url`.
+9. For a synchronized extension, open **Extensions → Open QR**, preview the live QR, download it from the PBX, and send one test email if SMTP delivery is required.
 
 The public portal requires a certificate trusted by the mobile device. PHP-FPM must be able to read the normal FusionPBX voicemail storage path for playback and remove owned voicemail files when a user confirms deletion. No extra web-server route or FusionPBX license is required.
 

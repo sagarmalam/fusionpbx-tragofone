@@ -15,7 +15,8 @@ $permission_names = [
 	'tragofone_tenant_edit', 'tragofone_mapping_view', 'tragofone_mapping_edit',
 	'tragofone_job_view', 'tragofone_job_retry', 'tragofone_initial_sync',
 	'tragofone_manual_sync', 'tragofone_log_view', 'tragofone_extension_sync_view',
-	'tragofone_extension_sync_edit',
+	'tragofone_extension_sync_edit', 'tragofone_qr_view', 'tragofone_qr_download',
+	'tragofone_qr_email',
 ];
 $y = 0;
 foreach ($permission_names as $permission_name) {

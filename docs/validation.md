@@ -11,7 +11,7 @@ The original MVP baseline through commit `376fbd4` was validated on 2026-07-22 a
 | Duplicate prevention | Repeated full reconciliation queued zero unchanged jobs; extension recovery keeps mapped identity | Passed |
 | DIDs | Direct route, two DIDs, deterministic sort, effective-caller-ID preference, ignored non-direct route | Passed |
 | DID removal | Disable one, disable all, clear `sip_callerid`, restore two-DID state | Passed |
-| Feature policy | Dial/SIP/hold/transfer/`*97` enabled; IM, SMS, video, hosted voicemail, Cloud Contacts, BLF, Zoom, call forwarding disabled | Passed |
+| Feature policy | Dial/SIP/hold/transfer/`*97` enabled; FusionPBX voicemail state synchronized; IM, SMS, video, Cloud Contacts, BLF, Zoom, call forwarding disabled | Passed |
 | Phonebook | Schema detection, create, update, field normalization, mapping-owned delete | Passed |
 | Failure isolation | Transient contact failure retries while a following SIP job completes | Passed |
 | Retry policy | 1, 5, 15 minutes; 1, 3, 6 hours; permanent failures become dead | Passed |
@@ -32,6 +32,18 @@ The test leaves two active extensions, two active direct DID mappings, and one s
 | #7 extension renumbering | Immutable username/user ID plus updated SIP identity and mapping display tests; OpenAPI confirms `usr_username` is not updateable | Awaiting deployment to the disposable PBX |
 
 The live server remained reachable over HTTPS during this regression pass, but its SSH port was filtered from the test runner, so the updated build could not yet be installed there. Do not interpret automated success as completion of the live rows above.
+
+## 2026-08-04 extension and QR regression validation
+
+| Area | Automated/contract validation | Live status |
+|---|---|---|
+| #9 Call Timeout | `call_timeout` normalization and `call_noAnswerTimeout` payload tests | Awaiting deployment to the disposable PBX |
+| #10 Emergency Caller ID | Number normalization, set, and clear payload tests for `emergency_numbers` | Awaiting deployment to the disposable PBX |
+| #11 Extension validation | Numeric/alphanumeric acceptance and 2–15 character boundary tests; invalid users are not queued | Awaiting deployment to the disposable PBX |
+| #12 Voicemail Enabled | Mailbox join/change detection and TRUE/FALSE `voicemail_status` tests | Awaiting deployment to the disposable PBX |
+| QR login | Mapped-user API request, tenant identity, nested/base64 image extraction, malformed-image rejection, permission/CSRF/no-store package checks | Awaiting deployment and a live QR response |
+
+The QR implementation was checked against the current official `customer/user/get-qr-code` contract. The endpoint documents a generic success envelope, so one live response is still required to confirm the deployed server's exact image field and complete preview/download/email acceptance.
 
 ## Phase 2 validation status
 

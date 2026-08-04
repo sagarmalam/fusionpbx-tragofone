@@ -10,6 +10,7 @@ Private, native FusionPBX application for tenant-aware Tragofone provisioning. I
 - SIP user creation and configuration using existing CRUD APIs
 - FusionPBX call timeout, emergency caller ID, and voicemail-enabled state synchronization
 - Numeric and alphanumeric SIP extensions with Tragofone's 2–15 character validation boundary
+- Live Tragofone QR enrollment from FusionPBX with secure preview, download, and direct email delivery
 - Per-extension include/exclude controls with a tenant default for newly created extensions
 - Effective outbound caller ID plus multiple direct DID choices with deterministic ordering
 - Restricted client policy: audio calling, dialpad, local history, enterprise phonebook, and one-touch voicemail

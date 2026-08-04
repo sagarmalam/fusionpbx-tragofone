@@ -1,7 +1,5 @@
 <?php
 
-final class tragofone_tenant_identity_exception extends RuntimeException {}
-
 final class tragofone_worker {
 	/** @param Closure(array):tragofone_client $client_factory */
 	public function __construct(private readonly tragofone_store $store, private readonly Closure $client_factory, private readonly ?tragofone_crypto $crypto = null) {}

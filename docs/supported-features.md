@@ -10,6 +10,8 @@
 | No-answer timeout | Synchronized from FusionPBX Call Timeout |
 | Tragofone account name | Synchronized from FusionPBX Effective Caller ID Name |
 | Per-extension SIP user selection | Supported; tenant default plus explicit include/exclude |
+| Tragofone QR login | Supported for synchronized mapped users; preview and download from FusionPBX |
+| QR delivery by email | Supported through configured FusionPBX SMTP; sent directly with a raster attachment |
 | Audio calling/dialpad | Supported through client configuration |
 | Effective outbound caller ID | Supported and trusted from the FusionPBX extension |
 | Emergency number | Synchronized from FusionPBX Emergency Caller ID Number |

@@ -10,6 +10,8 @@
 - Synchronize Emergency Caller ID Number to Tragofone Emergency Numbers, including removal (#10).
 - Enforce Tragofone's 2–15 character SIP-extension boundary while supporting numeric and alphanumeric values (#11).
 - Synchronize the FusionPBX mailbox Voicemail Enabled state to Tragofone voicemail enablement (#12).
+- Add domain-scoped Tragofone QR login preview, download, and direct FusionPBX SMTP delivery for synchronized users.
+- Add dedicated QR permissions, no-store handling, raster validation, sanitized audit events, and tests without persisting QR credentials.
 - Add Superadmin branding controls, image validation, WCAG contrast checks, live previews, global reprovisioning, interactive mockups, and portal documentation.
 
 - Fix tenant outbound-proxy provisioning by exposing its server/port settings, defaulting blank proxy values to the resolved SIP endpoint, and including tenant SIP policy in extension change detection (#4).

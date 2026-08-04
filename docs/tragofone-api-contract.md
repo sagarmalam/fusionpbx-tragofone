@@ -40,6 +40,12 @@ The published Tragofone schema defines the SIP extension as a string. The compan
 
 The documented user-update request supports password, account name, status, profile, email, and phone fields, but not `usr_username`. Consequently, the application username is immutable; extension renumbering updates SIP configuration and the local mapping while retaining the existing Tragofone login and `usr_id`.
 
+## QR login
+
+For a synchronized companion-owned mapping, FusionPBX calls `POST /api/customer/user/get-qr-code` with the stored Tragofone `user_id`. The published API uses the generic success envelope, so the companion accepts nested or direct base64/data-URI image values and then validates the decoded content. Only PNG, JPEG, or WebP images up to 2 MB and 4096 × 4096 are accepted.
+
+QR data is fetched only after an authenticated, domain-scoped, CSRF-protected administrator action. It is held in request memory for preview, download, or immediate SMTP delivery and is never stored in companion tables, synchronization jobs, logs, or FusionPBX's email queue.
+
 ## My Account configuration
 
 Phase 2 uses the existing `POST /api/customer/user/update-configurations` endpoint with `myaccount_status=TRUE` and a signed FusionPBX `myaccount_url`.

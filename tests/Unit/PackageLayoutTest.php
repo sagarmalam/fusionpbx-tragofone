@@ -11,6 +11,7 @@ final class PackageLayoutTest extends TestCase {
 		self::assertFileExists($app.'/selfcare/launch.php');
 		self::assertFileExists($app.'/selfcare/index.php');
 		self::assertFileExists($app.'/selfcare/assets/selfcare.css');
+		self::assertFileExists($app.'/qr_code.php');
 	}
 
 	public function test_installer_resolves_native_app_not_repository_root(): void {
@@ -44,7 +45,7 @@ final class PackageLayoutTest extends TestCase {
 	public function test_pages_use_declared_permissions_and_portable_access_denied_response(): void {
 		$root = dirname(__DIR__, 2);
 		$manifest = file_get_contents($root.'/tragofone/app_config.php');
-		$pages = ['index.php', 'global_settings.php', 'tenant_settings.php', 'mappings.php', 'jobs.php', 'reconciliation.php'];
+		$pages = ['index.php', 'global_settings.php', 'tenant_settings.php', 'extension_sync.php', 'qr_code.php', 'mappings.php', 'jobs.php', 'reconciliation.php'];
 
 		foreach ($pages as $page) {
 			$contents = file_get_contents($root.'/tragofone/'.$page);
@@ -56,5 +57,15 @@ final class PackageLayoutTest extends TestCase {
 				self::assertStringContainsString("'{$permission}'", $manifest, "{$page}: {$permission}");
 			}
 		}
+	}
+
+	public function test_qr_page_is_domain_scoped_csrf_protected_and_never_persists_qr_data(): void {
+		$page = file_get_contents(dirname(__DIR__, 2).'/tragofone/qr_code.php');
+		self::assertStringContainsString('m.domain_uuid=:domain_uuid', $page);
+		self::assertStringContainsString('e.enabled,p.sync_enabled', $page);
+		self::assertStringContainsString("validate(\$_SERVER['PHP_SELF'])", $page);
+		self::assertStringContainsString("Cache-Control: no-store", $page);
+		self::assertStringContainsString("method = 'direct'", $page);
+		self::assertStringNotContainsString('v_email_queue_attachments', $page);
 	}
 }

@@ -14,6 +14,9 @@
 - Run workers as `www-data` with systemd hardening and limited writable paths.
 - Never delete a Tragofone user/contact without a companion-owned immutable-ID mapping and confirmed source deletion.
 - Require the configured extension-deletion grace period before destructive user deletion; re-enable the same mapping if the extension returns during grace.
+- Treat Tragofone enrollment QR codes as credentials. Preview, download, and email actions require separate declared permissions, an active FusionPBX session, domain ownership of the mapped extension, synchronized status, and CSRF validation.
+- Fetch QR images on demand from the mapped Tragofone `user_id`; accept only validated PNG/JPEG/WebP content within strict size/dimension limits and send `no-store`, `no-referrer`, and MIME-sniffing protection headers.
+- Never persist QR data. Direct email delivery intentionally bypasses the FusionPBX email queue so the attachment is not retained in queue tables; SMTP must therefore be configured and reachable during the request.
 
 Threat-model and penetration-test the target deployment before production activation.
 
