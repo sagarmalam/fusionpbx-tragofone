@@ -8,7 +8,7 @@ The companion has its own runtime requirements in addition to FusionPBX's requir
 |---|---|---|
 | FusionPBX | 5.5 series | Integration-tested with FusionPBX `5.5.12`, branch commit `369d1f68c93912a1659a41c7e89f7acffc85e25b` |
 | PHP | 8.1 or newer; 8.1, 8.2, and 8.3 are covered by CI | Integration-tested with PHP CLI/FPM 8.2.32; PHP 8.4 and 8.5 are not yet supported because the complete FusionPBX integration has not been tested on them |
-| PHP extensions | `curl`, `fileinfo`, `json`, `mbstring`, `PDO`, `pdo_pgsql`, and `sodium` | All required; `intl` is optional and improves international-domain normalization |
+| PHP extensions | `curl`, `fileinfo`, `gd`, `json`, `mbstring`, `PDO`, `pdo_pgsql`, and `sodium` | All required; `gd` renders raw Tragofone QR payloads, while `intl` is optional and improves international-domain normalization |
 | Database | The PostgreSQL database used by the supported FusionPBX installation | Integration-tested with PostgreSQL 18.4; the companion has no separate PostgreSQL version requirement |
 | Operating system | Linux with systemd and the standard FusionPBX filesystem layout | Integration-tested on Debian 13; the supplied worker units do not support FreeBSD or non-systemd hosts |
 | FusionPBX runtime account | `www-data:www-data` by default | Other accounts are supported through installer variables |
@@ -24,6 +24,8 @@ PHP 8.1 is the code-level minimum, but it is end-of-life upstream. For a product
 - Bash, OpenSSL CLI, and standard Linux commands (`install`, `cp`, `chown`, `chmod`, `sed`, and `systemctl`).
 - Outbound HTTPS connectivity from the FusionPBX host to the Tragofone server.
 - The Tragofone HTTPS base URL, company-admin username/password, expected customer ID, and profile ID for each company that will synchronize.
+- A valid Tragofone profile created for each target company. The module assigns the configured profile ID but does not silently create production profiles.
+- FusionPBX's bundled `resources/qr_code/QRCode.php` library, which is present in the supported 5.5 installation.
 - Working FusionPBX SMTP settings when administrators will email QR enrollment codes. Preview and download do not require SMTP.
 - A backup before upgrading or replacing an existing companion installation.
 
@@ -37,16 +39,16 @@ Run these commands on the FusionPBX host:
 sudo php /var/www/fusionpbx/core/upgrade/upgrade.php --version
 php -v
 php -r '
-$required = ["curl", "fileinfo", "json", "mbstring", "PDO", "pdo_pgsql", "sodium"];
+$required = ["curl", "fileinfo", "gd", "json", "mbstring", "PDO", "pdo_pgsql", "sodium"];
 foreach ($required as $extension) {
     printf("%-12s %s\n", $extension, extension_loaded($extension) ? "OK" : "MISSING");
 }
 '
 ```
 
-The first command must report a FusionPBX 5.5 version. PHP must be 8.1 or newer, and every required extension must report `OK`. Make sure the CLI binary is the same PHP minor version used by PHP-FPM; mixing versions can produce a module that works in the browser but fails in the worker.
+The first command must report a FusionPBX 5.5 version. PHP must be 8.1 or newer, and every required extension must report `OK`. Also verify `/var/www/fusionpbx/resources/qr_code/QRCode.php` exists. Make sure the CLI binary is the same PHP minor version used by PHP-FPM; mixing versions can produce a module that works in the browser but fails in the worker.
 
-Install missing PHP packages using the package names for the PHP minor version selected by the FusionPBX installation. On Debian-family systems, cURL, mbstring, and PostgreSQL PDO support are commonly supplied by packages such as `phpX.Y-curl`, `phpX.Y-mbstring`, and `phpX.Y-pgsql`; Sodium and JSON are normally provided with the PHP build/common package. Re-run the check after installation and restart the matching PHP-FPM service when its modules change.
+Install missing PHP packages using the package names for the PHP minor version selected by the FusionPBX installation. On Debian-family systems, cURL, GD, mbstring, and PostgreSQL PDO support are commonly supplied by packages such as `phpX.Y-curl`, `phpX.Y-gd`, `phpX.Y-mbstring`, and `phpX.Y-pgsql`; Sodium and JSON are normally provided with the PHP build/common package. Re-run the check after installation and restart the matching PHP-FPM service when its modules change.
 
 ## 2. Obtain the private repository
 

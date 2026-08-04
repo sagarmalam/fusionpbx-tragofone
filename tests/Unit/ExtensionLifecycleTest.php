@@ -278,6 +278,30 @@ final class ExtensionLifecycleTest extends TestCase {
 		self::assertSame('1001@company.test', $store->extension_map['ext-1']['tragofone_username']);
 	}
 
+	public function test_worker_does_not_persist_a_mapping_without_a_remote_user_id(): void {
+		$store = new extension_lifecycle_store();
+		$store->claimed_job = [
+			'job_uuid'=>'create-without-id', 'domain_uuid'=>'domain-1', 'entity_type'=>'extension',
+			'entity_uuid'=>'ext-1', 'operation'=>'create_user',
+			'payload'=>json_encode(['extension'=>$this->extension(),'dids'=>[]], JSON_THROW_ON_ERROR),
+			'record_hash'=>'missing-id', 'attempt_count'=>0,
+		];
+		$transport = new extension_lifecycle_transport();
+		$transport->responses = [
+			['status'=>200,'headers'=>[],'body'=>'{"access_token":"a"}'],
+			['status'=>200,'headers'=>[],'body'=>'{"status":"SUCCESS","data":[]}'],
+		];
+		$factory = static function () use ($transport): tragofone_client {
+			$client = new tragofone_client('https://trago.test', $transport);
+			$client->customer_login('company', 'password');
+			return $client;
+		};
+		self::assertTrue((new tragofone_worker($store, $factory))->run_once('worker'));
+		self::assertArrayNotHasKey('ext-1', $store->extension_map);
+		self::assertSame('create-without-id', $store->failed[0]['job_uuid']);
+		self::assertStringContainsString('valid Tragofone user ID', $store->failed[0]['message']);
+	}
+
 	public function test_worker_provisions_a_signed_global_selfcare_url(): void {
 		$store = new extension_lifecycle_store();
 		$store->tenant_config = ['selfcare_enabled'=>true,'selfcare_base_url'=>'https://pbx.example/app/tragofone/selfcare','selfcare_brand_version'=>4,...tragofone_selfcare_theme::DEFAULTS];
@@ -288,7 +312,7 @@ final class ExtensionLifecycleTest extends TestCase {
 		$factory=static function()use($transport):tragofone_client{$client=new tragofone_client('https://trago.test',$transport);$client->customer_login('company','password');return $client;};
 		self::assertTrue((new tragofone_worker($store,$factory,new tragofone_crypto(str_repeat('k',32))))->run_once('worker'));
 		$configuration=json_decode($transport->requests[2]['body'],true,512,JSON_THROW_ON_ERROR)['configurations'];
-		self::assertSame('TRUE',$configuration['myaccount_status']);self::assertStringContainsString('brand_v=4',$configuration['myaccount_url']);self::assertStringContainsString('tragofone_salt=',$configuration['myaccount_url']);self::assertTrue($store->selfcare_subjects['ext-1']['active']);
+		self::assertSame('TRUE',$configuration['myaccount_status']);self::assertStringContainsString('v=4',$configuration['myaccount_url']);self::assertStringContainsString('tragofone_salt=',$configuration['myaccount_url']);self::assertLessThanOrEqual(200,strlen($configuration['myaccount_url']));self::assertTrue($store->selfcare_subjects['ext-1']['active']);
 	}
 
 	public function test_user_policy_can_disable_selfcare_without_disabling_sip_provisioning(): void {

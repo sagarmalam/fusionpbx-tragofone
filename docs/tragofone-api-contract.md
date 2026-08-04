@@ -1,6 +1,6 @@
 # Tragofone API contract
 
-The companion makes no Tragofone code changes and deliberately avoids `create-or-update-with-config` because its lookup is unsuitable for safe multi-tenant idempotency.
+The companion makes no Tragofone code changes and deliberately avoids `create-or-update-with-config` because its lookup is unsuitable for safe multi-tenant idempotency. A configured default profile must already exist for the Tragofone customer; an invalid or missing profile is treated as an API failure and no mapping is persisted unless user creation returns a positive `usr_id`.
 
 Company-admin calls:
 
@@ -42,7 +42,7 @@ The documented user-update request supports password, account name, status, prof
 
 ## QR login
 
-For a synchronized companion-owned mapping, FusionPBX calls `POST /api/customer/user/get-qr-code` with the stored Tragofone `user_id`. The published API uses the generic success envelope, so the companion accepts nested or direct base64/data-URI image values and then validates the decoded content. Only PNG, JPEG, or WebP images up to 2 MB and 4096 × 4096 are accepted.
+For a synchronized companion-owned mapping, FusionPBX calls `POST /api/customer/user/get-qr-code` with the stored Tragofone `user_id`. The live API may return either an image or a short raw QR payload in `data.qr_code`. Image responses are decoded and validated; raw payloads are rendered locally with FusionPBX's bundled QR library and PHP GD. Only validated PNG, JPEG, or WebP output up to 2 MB and 4096 × 4096 is accepted.
 
 QR data is fetched only after an authenticated, domain-scoped, CSRF-protected administrator action. It is held in request memory for preview, download, or immediate SMTP delivery and is never stored in companion tables, synchronization jobs, logs, or FusionPBX's email queue.
 
@@ -50,4 +50,6 @@ QR data is fetched only after an authenticated, domain-scoped, CSRF-protected ad
 
 Phase 2 uses the existing `POST /api/customer/user/update-configurations` endpoint with `myaccount_status=TRUE` and a signed FusionPBX `myaccount_url`.
 
-The configured URL contains `tragofone_salt`. On mobile and desktop launch, Tragofone removes that parameter and appends `tragofone_hash=MD5(salt + epoch)` and `tragofone_time=<epoch>`. No new Tragofone endpoint or server change is required. The companion HMAC signs the raw theme fields because they are outside the documented Tragofone MD5 input.
+The newly configured URL is a compact `/app/tragofone/sc.php` link containing the opaque subject, global brand version, a 192-bit companion HMAC, and `tragofone_salt`; the complete URL is rejected locally if it exceeds the API's 200-character limit. On mobile and desktop launch, Tragofone removes the salt and appends `tragofone_hash=MD5(salt + epoch)` and `tragofone_time=<epoch>`. No new Tragofone endpoint or server change is required. The PBX validates the compact signature before loading the matching global theme.
+
+The live API sometimes reports application-level `ERROR`, `FAILED`, or `FAILURE` inside an HTTP 200 response. The client treats those envelopes as failed requests, so an invalid profile or rejected configuration cannot be recorded as a successful synchronization.

@@ -8,8 +8,12 @@ final class tragofone_selfcare_provisioning {
 		}
 		$base_url = tragofone_url_validator::validate((string) ($tenant['selfcare_base_url'] ?? ''));
 		$subject = $store->selfcare_subject($domain_uuid, $extension_uuid); $rotate = $subject === null || !tragofone_normalizer::boolean($subject['active'] ?? false);
+		if (!$rotate) {
+			$existing_salt = $crypto->decrypt((string) $subject['encrypted_salt']);
+			if (strlen($existing_salt) !== 22) { $store->revoke_selfcare_subject($domain_uuid, $extension_uuid); $rotate = true; }
+		}
 		if ($rotate) {
-			$salt = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+			$salt = rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
 			$subject = [
 				'subject_uuid' => $subject['subject_uuid'] ?? tragofone_scanner::uuid(), 'domain_uuid' => $domain_uuid,
 				'extension_uuid' => $extension_uuid, 'encrypted_salt' => $crypto->encrypt($salt), 'active' => true,

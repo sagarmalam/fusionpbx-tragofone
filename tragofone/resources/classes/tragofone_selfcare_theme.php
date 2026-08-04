@@ -60,11 +60,32 @@ final class tragofone_selfcare_theme {
 	}
 
 	public static function account_url(string $base_url, string $subject_uuid, string $salt, array $theme): string {
-		$base_url = rtrim($base_url, '/').'/launch.php';
-		$payload = ['scid' => $subject_uuid, ...array_intersect_key($theme, array_flip(self::URL_FIELDS))];
-		$payload['brand_sig'] = self::sign($subject_uuid, $salt, $payload);
-		$payload['tragofone_salt'] = $salt;
-		return $base_url.'?'.http_build_query($payload, '', '&', PHP_QUERY_RFC3986);
+		$portal_url = rtrim($base_url, '/');
+		$launch_url = preg_replace('#/selfcare$#', '/sc.php', $portal_url) ?: $portal_url.'/launch.php';
+		$brand_version = max(1, (int) ($theme['brand_v'] ?? 1));
+		$payload = [
+			's' => $subject_uuid,
+			'v' => (string) $brand_version,
+			'g' => self::sign_compact($subject_uuid, $salt, $brand_version),
+			'tragofone_salt' => $salt,
+		];
+		$url = $launch_url.'?'.http_build_query($payload, '', '&', PHP_QUERY_RFC3986);
+		if (strlen($url) > 200) { throw new InvalidArgumentException('Generated My Account URL exceeds Tragofone\'s 200-character limit. Use a shorter public portal URL.'); }
+		return $url;
+	}
+
+	public static function sign_compact(string $subject_uuid, string $salt, int $brand_version): string {
+		$key = hash_hkdf('sha256', $salt, 32, 'tragofone-selfcare-branding-v2');
+		$signature = hash_hmac('sha256', $subject_uuid."\n".max(1, $brand_version), $key, true);
+		return self::base64url(substr($signature, 0, 24));
+	}
+
+	public static function verify_compact(string $subject_uuid, string $salt, int $brand_version, string $signature): bool {
+		return $signature !== '' && hash_equals(self::sign_compact($subject_uuid, $salt, $brand_version), $signature);
+	}
+
+	public static function verify_current_compact(string $subject_uuid, string $salt, int $brand_version, int $current_brand_version, string $signature): bool {
+		return $brand_version === $current_brand_version && self::verify_compact($subject_uuid, $salt, $brand_version, $signature);
 	}
 
 	public static function sign(string $subject_uuid, string $salt, array $payload): string {

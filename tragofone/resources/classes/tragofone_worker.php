@@ -56,10 +56,14 @@ final class tragofone_worker {
 				'profile_id' => $tenant['default_profile_id'] ?? null, 'send_qr_code' => 'N',
 			]);
 			$user = $result['data'] ?? $result;
+			$user_id = $user['usr_id'] ?? null;
+			if (!is_numeric($user_id) || (int) $user_id <= 0) {
+				throw new tragofone_api_exception('User creation did not return a valid Tragofone user ID.', 200);
+			}
 			$mapping = ['mapping_uuid' => tragofone_scanner::uuid(), 'domain_uuid' => $job['domain_uuid'], 'extension_uuid' => $job['entity_uuid'],
 				'extension' => $extension['extension'], 'tragofone_username' => $username,
 				'tragofone_customer_id' => $user['cust_id'] ?? $tenant['expected_customer_id'] ?? null,
-				'tragofone_user_id' => $user['usr_id'], 'tragofone_unique_id' => $user['usr_unique_id'] ?? null,
+				'tragofone_user_id' => (int) $user_id, 'tragofone_unique_id' => $user['usr_unique_id'] ?? null,
 				'profile_id' => $tenant['default_profile_id'] ?? null,
 				'sync_status' => 'created', 'insert_date' => gmdate('c'), 'update_date' => gmdate('c')];
 			$this->store->save_extension_mapping($mapping);

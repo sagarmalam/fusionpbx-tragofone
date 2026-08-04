@@ -13,7 +13,7 @@ The Phase 2 portal is a public FusionPBX route opened by Tragofone My Account. P
 5. Enter light and dark background, text, button, and button-text colors. The form rejects invalid hexadecimal values and color pairs below WCAG AA contrast.
 6. Choose whether external forwarding is allowed. If enabled, enter comma-separated prefixes such as `+1,+44`; same-company internal extensions remain allowed.
 7. Set idle and absolute session timeouts and save.
-8. Review queued jobs and mappings. Every eligible synchronized extension should receive `myaccount_status=TRUE` and a signed `myaccount_url` containing the global theme.
+8. Review queued jobs and mappings. Every eligible synchronized extension should receive `myaccount_status=TRUE` and a compact signed `myaccount_url` referencing the current global theme version.
 
 Branding is global. Company admins cannot override it. Saving a theme, logo, portal name, URL, or enable-state change increments the brand version and queues all eligible users for asynchronous reprovisioning.
 
@@ -38,9 +38,9 @@ The portal follows the WebView/device light or dark preference. There is no port
 
 ## Account URL and authentication
 
-The worker configures an extension-specific URL containing an opaque `scid`, raw global branding values, `brand_v`, companion `brand_sig`, and `tragofone_salt`. Tragofone removes the salt and adds `tragofone_hash` and `tragofone_time` at launch.
+Tragofone limits `myaccount_url` to 200 characters. The worker therefore configures a compact extension-specific URL containing an opaque subject (`s`), global brand version (`v`), a 192-bit companion signature (`g`), and the per-user `tragofone_salt`. The raw theme remains in the Superadmin-owned FusionPBX configuration and is loaded only after the compact signature and brand version validate. Tragofone removes the salt and adds `tragofone_hash` and `tragofone_time` at launch.
 
-The portal validates the two-minute Tragofone assertion, 60-second future clock skew, companion HMAC, brand version, replay state, extension/mapping status, and effective global/domain/user access policy. It then redirects to a clean URL and stores only a hashed session token server-side.
+The portal validates the two-minute Tragofone assertion, 60-second future clock skew, companion HMAC, brand version, replay state, extension/mapping status, and effective global/domain/user access policy. Modified subject or brand-version parameters fail signature validation. It then redirects to a clean URL and stores only a hashed session token server-side. Legacy long-form signed links remain launch-compatible during migration, while all newly provisioned links use the compact format.
 
 ## Mockups
 

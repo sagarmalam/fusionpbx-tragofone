@@ -189,7 +189,8 @@ final class tragofone_selfcare_repository {
 	public function update_voicemail_settings(array $session, string $email, string $pin): void {
 		$mailbox=$this->mailbox($session); if($mailbox===null){throw new RuntimeException('Voicemail mailbox is unavailable.');}
 		$email=trim($email); if($email!=='' && filter_var($email,FILTER_VALIDATE_EMAIL)===false){throw new InvalidArgumentException('Enter one valid voicemail email address.');}
-		$fields=['voicemail_mail_to=:email']; $params=['email'=>$email,'domain_uuid'=>$session['domain_uuid'],'voicemail_uuid'=>$mailbox['voicemail_uuid']];
+		$fields=[$email===''?'voicemail_mail_to=null':'voicemail_mail_to=:email']; $params=['domain_uuid'=>$session['domain_uuid'],'voicemail_uuid'=>$mailbox['voicemail_uuid']];
+		if($email!==''){$params['email']=$email;}
 		if($pin!==''){$policy=$this->voicemail_pin_policy($session);if(!preg_match('/^\d{'.$policy['min'].',20}$/',$pin)){throw new InvalidArgumentException('Voicemail PIN must contain '.$policy['min'].' to 20 digits.');}if($policy['complexity']&&(preg_match('/(\d)\1{2}/',$pin)||preg_match('/(012|123|234|345|456|567|678|789|987|876|765|654|543|432|321|210)/',$pin))){throw new InvalidArgumentException('Voicemail PIN cannot contain three repeated or sequential digits.');}$fields[]='voicemail_password=:pin';$params['pin']=$pin;}
 		$this->execute('update v_voicemails set '.implode(',',$fields).',update_date=now() where domain_uuid=:domain_uuid and voicemail_uuid=:voicemail_uuid',$params);
 		$this->audit($session,'selfcare.voicemail.settings','Voicemail notification settings updated.');

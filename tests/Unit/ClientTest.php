@@ -69,6 +69,30 @@ final class ClientTest extends TestCase {
 		self::assertSame(['user_id'=>91], json_decode($request['body'], true, 512, JSON_THROW_ON_ERROR));
 	}
 
+	public function test_rejects_http_200_application_errors(): void {
+		$transport = new fake_transport();
+		$transport->responses = [
+			['status'=>200,'headers'=>[],'body'=>'{"access_token":"abc"}'],
+			['status'=>200,'headers'=>[],'body'=>'{"status":"ERROR","message":"User Not Found.","data":[]}'],
+		];
+		$client = new tragofone_client('https://trago.test', $transport);
+		$client->customer_login('company', 'password');
+		$this->expectException(tragofone_api_exception::class);
+		$this->expectExceptionMessage('User Not Found.');
+		$client->get_qr_code(91);
+	}
+
+	public function test_accepts_http_200_success_status(): void {
+		$transport = new fake_transport();
+		$transport->responses = [
+			['status'=>200,'headers'=>[],'body'=>'{"access_token":"abc"}'],
+			['status'=>200,'headers'=>[],'body'=>'{"status":"SUCCESS","data":[]}'],
+		];
+		$client = new tragofone_client('https://trago.test', $transport);
+		$client->customer_login('company', 'password');
+		self::assertSame(['status'=>'SUCCESS','data'=>[]], $client->get_qr_code(91));
+	}
+
 	public function test_customer_client_factory_verifies_tenant_identity(): void {
 		$transport = new fake_transport(); $crypto = new tragofone_crypto(str_repeat('k', 32));
 		$transport->responses = [

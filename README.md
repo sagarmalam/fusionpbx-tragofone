@@ -26,7 +26,7 @@ No FusionPBX licensed API, remote database access, FusionPBX core patch, or Trag
 
 ## Phase 2 self-care
 
-The Superadmin configures one global portal name, logo, and light/dark color set. The worker signs those raw values into each eligible user's Tragofone Account URL. A one-time Tragofone salt launch creates a short server-side session; users never receive a FusionPBX login or access another extension's data.
+The Superadmin configures one global portal name, logo, and light/dark color set. The worker installs a compact signed Account URL that identifies the user and current global brand version; the PBX loads the corresponding validated theme at launch. A one-time Tragofone salt launch creates a short server-side session, so users never receive a FusionPBX login or access another extension's data.
 
 ![Desktop and mobile self-care mockup](docs/mockups/selfcare-desktop-light.png)
 

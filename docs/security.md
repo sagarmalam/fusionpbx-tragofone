@@ -22,8 +22,8 @@ Threat-model and penetration-test the target deployment before production activa
 
 ## Self-care security boundary
 
-- Each synchronized extension receives a unique opaque subject and 256-bit random salt encrypted with the existing external key.
-- Tragofone authenticates launches with `MD5(salt + epoch)`. The companion separately signs the subject and every raw branding parameter with HMAC-SHA256 because the Tragofone hash does not cover additional URL fields.
+- Each synchronized extension receives a unique opaque subject and 128-bit random salt encrypted with the existing external key. Existing longer salts are rotated automatically when compact URLs are provisioned.
+- Tragofone authenticates launches with `MD5(salt + epoch)`. The companion separately signs the subject and brand version with a truncated 192-bit HMAC-SHA256 because the Tragofone hash does not cover additional URL fields. Theme values are loaded from the global PBX configuration only after that signature validates.
 - Launches expire after two minutes, allow 60 seconds of future clock skew, and are single-use. Invalid attempts are rate limited without storing raw IP addresses.
 - Successful launches redirect to a clean URL and use a Secure, HttpOnly, SameSite=Lax cookie backed by a hashed server-side token. Sessions are bound to keyed IP and user-agent fingerprints and have idle and absolute expiry.
 - Every mutation requires CSRF validation. Mailbox and extension identity are derived from the authenticated subject, never from a request parameter.

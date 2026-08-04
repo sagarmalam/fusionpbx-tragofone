@@ -35,4 +35,4 @@ Branding and portal security settings are global and Superadmin-only; they canno
 
 The default forwarding policy is either same-company extensions only or same-company extensions plus approved external prefixes. **Rotate Self-Care Salts** revokes active sessions and asynchronously installs new signed Account URLs for eligible users.
 
-Saving a branding or access-policy change increments the global brand version and queues configuration updates for every enabled, selected, synchronized extension. The generated Account URL contains the raw global values plus a per-user subject, salt, and companion signature. See [Self-care portal](selfcare.md).
+Saving a branding or access-policy change increments the global brand version and queues configuration updates for every enabled, selected, synchronized extension. The generated Account URL contains a compact per-user subject, signed brand-version reference, and salt; the global theme itself remains on the PBX so the URL stays within Tragofone's 200-character limit. See [Self-care portal](selfcare.md).

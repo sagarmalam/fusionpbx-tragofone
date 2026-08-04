@@ -16,6 +16,16 @@ final class QrCodeTest extends TestCase {
 		self::assertStringStartsWith("\x89PNG", $qr['bytes']);
 	}
 
+	public function test_renders_a_plain_tragofone_qr_payload(): void {
+		$seen = null;
+		$qr = tragofone_qr_code::from_response(
+			['status'=>'SUCCESS','data'=>['qr_code'=>'short-enrollment-payload']],
+			static function (string $payload) use (&$seen): string { $seen = $payload; return base64_decode(self::PNG, true); }
+		);
+		self::assertSame('short-enrollment-payload', $seen);
+		self::assertSame('image/png', $qr['mime_type']);
+	}
+
 	/** @dataProvider invalid_responses */
 	public function test_rejects_non_images_and_spoofed_image_signatures(array $response): void {
 		$this->expectException(RuntimeException::class);

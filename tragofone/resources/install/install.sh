@@ -25,12 +25,13 @@ test -f "${FUSIONPBX_ROOT}/core/upgrade/upgrade.php" || { echo "FusionPBX upgrad
 		fwrite(STDERR, "Tragofone requires PHP 8.1 or newer; found ".PHP_VERSION.".\n");
 		exit(1);
 	}
-	$missing = array_values(array_filter(["curl", "fileinfo", "json", "mbstring", "PDO", "pdo_pgsql", "sodium"], static fn ($extension) => !extension_loaded($extension)));
+	$missing = array_values(array_filter(["curl", "fileinfo", "gd", "json", "mbstring", "PDO", "pdo_pgsql", "sodium"], static fn ($extension) => !extension_loaded($extension)));
 	if ($missing !== []) {
 		fwrite(STDERR, "Missing required PHP extension(s): ".implode(", ", $missing).".\n");
 		exit(1);
 	}
 '
+test -f "${FUSIONPBX_ROOT}/resources/qr_code/QRCode.php" || { echo "FusionPBX QR rendering library was not found." >&2; exit 1; }
 
 install -d -o "${FUSIONPBX_USER}" -g "${FUSIONPBX_GROUP}" "${TARGET}"
 # Copy only the native FusionPBX application, not the repository wrapper.

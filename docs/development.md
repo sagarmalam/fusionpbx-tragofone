@@ -1,6 +1,6 @@
 # Development
 
-Install PHP 8.1, 8.2, or 8.3, Composer, and the cURL, Fileinfo, JSON, mbstring, PDO/PostgreSQL, and Sodium extensions, then run:
+Install PHP 8.1, 8.2, or 8.3, Composer, and the cURL, Fileinfo, GD, JSON, mbstring, PDO/PostgreSQL, and Sodium extensions, then run:
 
 ```bash
 composer install

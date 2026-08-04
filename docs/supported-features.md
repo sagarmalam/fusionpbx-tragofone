@@ -41,7 +41,7 @@ The integration synchronizes SIP/application credentials, supported enterprise c
 | Feature | Status |
 |---|---|
 | Signed Tragofone My Account launch | Supported |
-| Global light/dark branding embedded in Account URL | Supported |
+| Global light/dark branding referenced by signed Account URL version | Supported; compact URL stays within the 200-character API limit |
 | Global/domain/user self-care access | Supported; Inherit/Yes/No with user-first precedence |
 | Account, extension, DID, and caller-ID summary | Supported, read-only |
 | DND and all/busy/no-answer/not-registered forwarding | Supported |

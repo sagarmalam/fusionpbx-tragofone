@@ -36,7 +36,7 @@ final class tragofone_scanner {
 			]));
 			$source = ['extension' => $extension, 'dids' => $dids, 'sync_enabled' => $sync_enabled,
 				'selfcare_policy' => $selfcare_user_policy, 'selfcare_enabled' => $selfcare_enabled,
-				'tenant_policy' => $tenant_policy, 'policy_version' => 8];
+				'tenant_policy' => $tenant_policy, 'policy_version' => 9];
 			$hash = tragofone_normalizer::hash($source);
 			$previous = $this->store->snapshot($domain_uuid, 'extension', $extension_uuid);
 			$mapping = $this->store->extension_mapping($domain_uuid, $extension_uuid);
