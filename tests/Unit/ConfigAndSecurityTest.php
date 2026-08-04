@@ -37,6 +37,14 @@ final class ConfigAndSecurityTest extends TestCase {
 		self::assertTrue(tragofone_selfcare_policy::enabled('no', 'yes', 'inherit'));
 		self::assertTrue(tragofone_selfcare_policy::enabled('no', 'no', 'yes'));
 	}
+	public function test_selfcare_session_defaults_to_twenty_four_hours(): void {
+		self::assertSame(86400, tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS);
+		self::assertSame(86400, tragofone_selfcare_repository::MAX_SESSION_SECONDS);
+		self::assertSame(300, tragofone_selfcare_repository::MIN_SESSION_SECONDS);
+		$defaults = file_get_contents(dirname(__DIR__, 2).'/tragofone/app_defaults.php');
+		self::assertStringContainsString("['selfcare', 'session_idle_seconds', '86400'", $defaults);
+		self::assertStringContainsString("['selfcare', 'session_absolute_seconds', '86400'", $defaults);
+	}
 	public function test_resolved_tenant_keeps_domain_policy_separate_from_global_branding(): void {
 		$resolved=tragofone_config::resolve(
 			['selfcare_policy'=>'no','selfcare_brand_name'=>'Global Brand','base_url'=>'https://global.test','customer_username'=>'global','encrypted_customer_password'=>'secret'],
