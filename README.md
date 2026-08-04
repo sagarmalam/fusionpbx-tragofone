@@ -8,6 +8,9 @@ Private, native FusionPBX application for tenant-aware Tragofone provisioning. I
 - Role-aware UI: Superadmins and tenant-scoped admins can open the module; Global Settings remain Superadmin-only
 - Customer identity verification and tenant-isolated tokens
 - SIP user creation and configuration using existing CRUD APIs
+- FusionPBX call timeout, emergency caller ID, and voicemail-enabled state synchronization
+- Numeric and alphanumeric SIP extensions with Tragofone's 2–15 character validation boundary
+- Live Tragofone QR enrollment from FusionPBX with secure preview, download, and direct email delivery
 - Per-extension include/exclude controls with a tenant default for newly created extensions
 - Effective outbound caller ID plus multiple direct DID choices with deterministic ordering
 - Restricted client policy: audio calling, dialpad, local history, enterprise phonebook, and one-touch voicemail
@@ -15,8 +18,20 @@ Private, native FusionPBX application for tenant-aware Tragofone provisioning. I
 - In-GUI reconciliation and failed-job retry controls
 - Crash recovery for expired worker locks and automatic tenant pause on authentication/identity failures
 - FusionPBX phonebook synchronization to the tenant-wide Tragofone Enterprise Directory
+- Globally branded, signed Tragofone My Account portal with responsive light/dark themes
+- Inherit/Yes/No self-care access policy at global, domain, and individual-user levels
+- Extension-scoped DND, call forwarding, Visual Voicemail, voicemail email, and PIN self-care
+- Session-owned self-care QR display for enrolling another Tragofone device
 
 No FusionPBX licensed API, remote database access, FusionPBX core patch, or Tragofone server change is required.
+
+## Phase 2 self-care
+
+The Superadmin configures one global portal name, logo, and light/dark color set. The worker installs a compact signed Account URL that identifies the user and current global brand version; the PBX loads the corresponding validated theme at launch. A one-time Tragofone salt launch creates a short server-side session, so users never receive a FusionPBX login or access another extension's data.
+
+![Desktop and mobile self-care mockup](docs/mockups/selfcare-desktop-light.png)
+
+See [Self-care portal](docs/selfcare.md) and the [interactive mockup](docs/mockups/selfcare.html).
 
 ## Quick start
 
@@ -32,6 +47,7 @@ See [Installation](docs/installation.md) for the explicit FusionPBX/PHP compatib
 - [Security](docs/security.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Validation matrix](docs/validation.md)
+- [Self-care portal](docs/selfcare.md)
 
 ## Development
 

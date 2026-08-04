@@ -4,7 +4,7 @@
 $apps[$x]['name'] = 'Tragofone';
 $apps[$x]['uuid'] = '1b9e9c69-7d33-4d44-99ae-ccecb9e5d001';
 $apps[$x]['category'] = 'Advanced';
-$apps[$x]['version'] = '0.1.0';
+$apps[$x]['version'] = '0.2.0';
 $apps[$x]['license'] = 'Proprietary';
 $apps[$x]['url'] = 'https://github.com/sagarmalam/fusionpbx-tragofone';
 $apps[$x]['description']['en-us'] = 'Tenant-aware Tragofone provisioning companion.';
@@ -15,7 +15,8 @@ $permission_names = [
 	'tragofone_tenant_edit', 'tragofone_mapping_view', 'tragofone_mapping_edit',
 	'tragofone_job_view', 'tragofone_job_retry', 'tragofone_initial_sync',
 	'tragofone_manual_sync', 'tragofone_log_view', 'tragofone_extension_sync_view',
-	'tragofone_extension_sync_edit',
+	'tragofone_extension_sync_edit', 'tragofone_qr_view', 'tragofone_qr_download',
+	'tragofone_qr_email',
 ];
 $y = 0;
 foreach ($permission_names as $permission_name) {
@@ -33,6 +34,15 @@ $tables = [
 		['config_uuid', 'uuid', 'primary'], ['base_url', 'text'], ['customer_username', 'text'],
 		['encrypted_customer_password', 'text'], ['verify_tls', 'boolean'], ['default_profile_id', 'numeric'],
 		['sip_port', 'numeric'], ['sip_protocol', 'text'], ['voicemail_code', 'text'],
+		['selfcare_enabled', 'boolean'], ['selfcare_policy', 'text'], ['selfcare_base_url', 'text'], ['selfcare_brand_name', 'text'],
+		['selfcare_brand_logo_base64', 'text'], ['selfcare_brand_logo_mime', 'text'],
+		['selfcare_light_background', 'text'], ['selfcare_light_foreground', 'text'],
+		['selfcare_light_button', 'text'], ['selfcare_light_button_foreground', 'text'],
+		['selfcare_dark_background', 'text'], ['selfcare_dark_foreground', 'text'],
+		['selfcare_dark_button', 'text'], ['selfcare_dark_button_foreground', 'text'],
+		['selfcare_brand_version', 'numeric'], ['selfcare_external_forwarding', 'boolean'],
+		['selfcare_external_prefixes', 'text'], ['selfcare_session_idle_seconds', 'numeric'],
+		['selfcare_session_absolute_seconds', 'numeric'],
 		['insert_date', 'timestamp'], ['insert_user', 'uuid'], ['update_date', 'timestamp'], ['update_user', 'uuid'],
 	],
 	'v_tragofone_tenants' => [
@@ -44,7 +54,7 @@ $tables = [
 		['expected_company_name', 'text'], ['default_profile_id', 'numeric'],
 		['sip_server', 'text'], ['sip_port', 'numeric'], ['sip_protocol', 'text'],
 		['outbound_proxy_server', 'text'], ['outbound_proxy_port', 'numeric'],
-		['voicemail_code', 'text'], ['deletion_grace_seconds', 'numeric'], ['default_extension_sync', 'boolean'],
+		['voicemail_code', 'text'], ['deletion_grace_seconds', 'numeric'], ['default_extension_sync', 'boolean'], ['selfcare_policy', 'text'],
 		['last_auth_status', 'text'], ['last_error', 'text'], ['last_sync_at', 'timestamp'],
 		['insert_date', 'timestamp'], ['insert_user', 'uuid'], ['update_date', 'timestamp'], ['update_user', 'uuid'],
 	],
@@ -70,7 +80,7 @@ $tables = [
 	],
 	'v_tragofone_extension_policies' => [
 		['policy_uuid', 'uuid', 'primary'], ['domain_uuid', 'uuid', 'index'], ['extension_uuid', 'uuid', 'index'],
-		['sync_enabled', 'boolean'], ['insert_date', 'timestamp'], ['insert_user', 'uuid'],
+		['sync_enabled', 'boolean'], ['selfcare_policy', 'text'], ['insert_date', 'timestamp'], ['insert_user', 'uuid'],
 		['update_date', 'timestamp'], ['update_user', 'uuid'],
 	],
 	'v_tragofone_snapshots' => [
@@ -96,6 +106,25 @@ $tables = [
 		['audit_uuid', 'uuid', 'primary'], ['domain_uuid', 'uuid', 'index'],
 		['action', 'text'], ['entity_type', 'text'], ['entity_uuid', 'uuid'],
 		['summary', 'text'], ['correlation_id', 'uuid'], ['insert_date', 'timestamp'], ['insert_user', 'uuid'],
+	],
+	'v_tragofone_selfcare_subjects' => [
+		['subject_uuid', 'uuid', 'primary'], ['domain_uuid', 'uuid', 'index'],
+		['extension_uuid', 'uuid', 'index'], ['encrypted_salt', 'text'], ['active', 'boolean'],
+		['brand_version', 'numeric'], ['insert_date', 'timestamp'], ['update_date', 'timestamp'],
+	],
+	'v_tragofone_selfcare_sessions' => [
+		['session_uuid', 'uuid', 'primary'], ['subject_uuid', 'uuid', 'index'],
+		['token_hash', 'text'], ['csrf_hash', 'text'], ['theme_payload', 'text'], ['ip_hash', 'text'], ['user_agent_hash', 'text'],
+		['created_at', 'timestamp'], ['last_seen_at', 'timestamp'], ['idle_expires_at', 'timestamp'],
+		['absolute_expires_at', 'timestamp'], ['revoked_at', 'timestamp'],
+	],
+	'v_tragofone_selfcare_assertions' => [
+		['assertion_hash', 'text', 'primary'], ['subject_uuid', 'uuid', 'index'],
+		['expires_at', 'timestamp'], ['consumed_at', 'timestamp'], ['insert_date', 'timestamp'],
+	],
+	'v_tragofone_selfcare_rate_limits' => [
+		['bucket_hash', 'text', 'primary'], ['window_start', 'timestamp'], ['attempts', 'numeric'],
+		['blocked_until', 'timestamp'], ['update_date', 'timestamp'],
 	],
 ];
 

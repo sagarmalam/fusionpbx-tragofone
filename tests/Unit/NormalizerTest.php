@@ -29,4 +29,25 @@ final class NormalizerTest extends TestCase {
 		$this->expectException(InvalidArgumentException::class);
 		tragofone_normalizer::application_password('');
 	}
+
+	public function test_sip_extension_accepts_numeric_and_alphanumeric_values(): void {
+		self::assertSame('10', tragofone_normalizer::sip_extension('10'));
+		self::assertSame('Sales15', tragofone_normalizer::sip_extension(' Sales15 '));
+		self::assertSame(str_repeat('A', 15), tragofone_normalizer::sip_extension(str_repeat('A', 15)));
+	}
+
+	/** @dataProvider invalid_sip_extensions */
+	public function test_sip_extension_enforces_tragofone_boundary(string $extension): void {
+		$this->expectException(InvalidArgumentException::class);
+		tragofone_normalizer::sip_extension($extension);
+	}
+
+	public static function invalid_sip_extensions(): array {
+		return [['1'], [str_repeat('1', 16)], ['10 01'], ['10+01'], ['å100']];
+	}
+
+	public function test_call_timeout_is_normalized_without_changing_its_value(): void {
+		self::assertSame('60', tragofone_normalizer::call_timeout('060'));
+		self::assertSame('30', tragofone_normalizer::call_timeout(null));
+	}
 }

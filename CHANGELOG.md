@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- Add the Phase 2 signed self-care portal with global light/dark branding embedded in each Tragofone Account URL.
+- Add per-extension one-time launch subjects, encrypted salts, server-side sessions, replay protection, rate limiting, CSRF protection, and session revocation.
+- Add responsive account summary, DND and forwarding, FusionPBX Visual Voicemail, voicemail email, and PIN self-care.
+- Add Inherit/Yes/No self-care access controls at global, domain, and individual-user levels.
+- Synchronize FusionPBX Call Timeout to Tragofone No Answer Timeout (#9).
+- Synchronize Emergency Caller ID Number to Tragofone Emergency Numbers, including removal (#10).
+- Enforce Tragofone's 2–15 character SIP-extension boundary while supporting numeric and alphanumeric values (#11).
+- Synchronize the FusionPBX mailbox Voicemail Enabled state to Tragofone voicemail enablement (#12).
+- Add domain-scoped Tragofone QR login preview, download, and direct FusionPBX SMTP delivery for synchronized users.
+- Add dedicated QR permissions, no-store handling, raster validation, sanitized audit events, and tests without persisting QR credentials.
+- Add Superadmin branding controls, image validation, WCAG contrast checks, live previews, global reprovisioning, interactive mockups, and portal documentation.
+- Keep newly provisioned My Account URLs within Tragofone's 200-character limit by signing a compact subject and global brand-version reference, while retaining legacy launch compatibility.
+- Render live Tragofone raw QR payloads as validated PNG images with PHP GD and FusionPBX's bundled QR library.
+- Treat HTTP 200 application-error envelopes as API failures and reject user creation responses without a positive `usr_id`.
+- Fix clearing a self-care voicemail notification address and prevent intrinsic mobile navigation overflow at 320px.
+- Remove the manual logout control from the Tragofone-embedded self-care header; sessions continue to expire or revoke through the existing security policy.
+- Add an authenticated, tenant-isolated self-care QR view so users can enroll another Tragofone device without opening the administrative portal.
+- Standardize link, secondary, primary, table, and form actions across every Tragofone administration page, including full-width mobile form actions.
+
 - Fix tenant outbound-proxy provisioning by exposing its server/port settings, defaulting blank proxy values to the resolved SIP endpoint, and including tenant SIP policy in extension change detection (#4).
 - Synchronize Effective Caller ID Name changes to the mapped Tragofone account name while keeping the mapping's current FusionPBX extension number accurate (#6).
 - Reuse the FusionPBX SIP password for Tragofone application login and rotate both through the existing user/configuration APIs (#3).

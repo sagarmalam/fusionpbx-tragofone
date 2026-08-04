@@ -14,5 +14,20 @@
 - Run workers as `www-data` with systemd hardening and limited writable paths.
 - Never delete a Tragofone user/contact without a companion-owned immutable-ID mapping and confirmed source deletion.
 - Require the configured extension-deletion grace period before destructive user deletion; re-enable the same mapping if the extension returns during grace.
+- Treat Tragofone enrollment QR codes as credentials. Preview, download, and email actions require separate declared permissions, an active FusionPBX session, domain ownership of the mapped extension, synchronized status, and CSRF validation.
+- Fetch QR images on demand from the mapped Tragofone `user_id`; accept only validated PNG/JPEG/WebP content within strict size/dimension limits and send `no-store`, `no-referrer`, and MIME-sniffing protection headers.
+- Never persist QR data. Direct email delivery intentionally bypasses the FusionPBX email queue so the attachment is not retained in queue tables; SMTP must therefore be configured and reachable during the request.
+- The self-care QR route derives the Tragofone user ID only from the authenticated extension session, requires CSRF-protected POST, applies request rate limiting, rechecks the active synchronized mapping and tenant, and never accepts a user or mapping identifier from the browser.
 
 Threat-model and penetration-test the target deployment before production activation.
+
+## Self-care security boundary
+
+- Each synchronized extension receives a unique opaque subject and 128-bit random salt encrypted with the existing external key. Existing longer salts are rotated automatically when compact URLs are provisioned.
+- Tragofone authenticates launches with `MD5(salt + epoch)`. The companion separately signs the subject and brand version with a truncated 192-bit HMAC-SHA256 because the Tragofone hash does not cover additional URL fields. Theme values are loaded from the global PBX configuration only after that signature validates.
+- Launches expire after two minutes, allow 60 seconds of future clock skew, and are single-use. Invalid attempts are rate limited without storing raw IP addresses.
+- Successful launches redirect to a clean URL and use a Secure, HttpOnly, SameSite=Lax cookie backed by a hashed server-side token. Sessions are bound to keyed IP and user-agent fingerprints and have idle and absolute expiry.
+- Every mutation requires CSRF validation. Mailbox and extension identity are derived from the authenticated subject, never from a request parameter.
+- CSP, no-store, no-referrer, MIME sniffing protection, same-origin framing, and restricted browser permissions are applied to public pages.
+- The configured Account URL contains the per-user salt because Tragofone requires it. Treat the configured URL as a credential and do not copy it into tickets or logs. Tragofone removes `tragofone_salt` before launching the PBX URL, so it is not present in the PBX access request.
+- Logo data is stored in the companion database and served same-origin. Uploads are MIME checked and limited to PNG/JPEG/WebP, 256 KB, and 512 × 512; SVG and external tracking URLs are rejected.

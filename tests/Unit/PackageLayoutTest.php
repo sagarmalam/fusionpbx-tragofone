@@ -8,6 +8,10 @@ final class PackageLayoutTest extends TestCase {
 		self::assertFileExists($app.'/app_defaults.php');
 		self::assertFileExists($app.'/app_menu.php');
 		self::assertFileExists($app.'/index.php');
+		self::assertFileExists($app.'/selfcare/launch.php');
+		self::assertFileExists($app.'/selfcare/index.php');
+		self::assertFileExists($app.'/selfcare/assets/selfcare.css');
+		self::assertFileExists($app.'/qr_code.php');
 	}
 
 	public function test_installer_resolves_native_app_not_repository_root(): void {
@@ -16,10 +20,62 @@ final class PackageLayoutTest extends TestCase {
 		self::assertStringNotContainsString('/../../.." && pwd)', $installer);
 	}
 
+	public function test_public_voicemail_pages_use_opaque_message_handles(): void {
+		$app = dirname(__DIR__, 2).'/tragofone/selfcare';
+		$voicemail = file_get_contents($app.'/voicemail.php');
+		self::assertStringContainsString('voicemail_message_handle', $voicemail);
+		self::assertStringNotContainsString('rawurlencode($uuid)', $voicemail);
+		foreach (['media.php', 'confirm-delete.php', 'action.php'] as $page) {
+			self::assertStringContainsString('voicemail_message_from_handle', file_get_contents($app.'/'.$page), $page);
+		}
+	}
+
+	public function test_selfcare_has_no_manual_logout_control(): void {
+		$app = dirname(__DIR__, 2).'/tragofone/selfcare';
+		self::assertStringNotContainsString('logout', strtolower(file_get_contents($app.'/_layout.php')));
+		self::assertStringNotContainsString("case 'logout'", strtolower(file_get_contents($app.'/action.php')));
+	}
+
+	public function test_selfcare_device_qr_is_session_owned_and_csrf_protected(): void {
+		$app = dirname(__DIR__, 2).'/tragofone/selfcare';
+		$page = file_get_contents($app.'/device.php');
+		self::assertStringContainsString('sc_require_session()', $page);
+		self::assertStringContainsString('verify_csrf', $page);
+		self::assertStringContainsString('device_login_qr($session)', $page);
+		self::assertStringNotContainsString("\$_GET['id']", $page);
+		self::assertStringNotContainsString("\$_POST['user_id']", $page);
+		self::assertStringContainsString('device.php', file_get_contents($app.'/settings.php'));
+	}
+
+	public function test_global_selfcare_controls_warn_and_support_salt_rotation(): void {
+		$page = file_get_contents(dirname(__DIR__, 2).'/tragofone/global_settings.php');
+		self::assertStringContainsString('Rotate Self-Care Salts', $page);
+		self::assertStringContainsString('Saving may update the Account URL for every synchronized Tragofone user', $page);
+		self::assertStringContainsString('selfcare.salts.rotate', $page);
+	}
+
+	public function test_admin_actions_share_uniform_control_metrics(): void {
+		$navigation = file_get_contents(dirname(__DIR__, 2).'/tragofone/resources/views/navigation.php');
+		self::assertStringContainsString('.tfn-shell .btn{', $navigation);
+		self::assertStringContainsString('display:inline-flex!important', $navigation);
+		self::assertStringContainsString('min-height:40px!important', $navigation);
+		self::assertStringContainsString('padding:8px 14px!important', $navigation);
+		self::assertStringContainsString('font-size:13px!important', $navigation);
+		self::assertStringContainsString('border-radius:7px!important', $navigation);
+		self::assertStringContainsString('.tfn-shell .btn-default{', $navigation);
+		self::assertStringContainsString('.tfn-shell .btn-primary{', $navigation);
+		self::assertStringContainsString('.tfn-shell .btn-danger{', $navigation);
+	}
+
+	public function test_selfcare_policy_is_editable_at_global_domain_and_user_levels(): void {
+		$root=dirname(__DIR__,2).'/tragofone';
+		foreach(['global_settings.php','tenant_settings.php','extension_sync.php'] as $page){$contents=file_get_contents($root.'/'.$page);self::assertStringContainsString('selfcare_policy',$contents,$page);self::assertStringContainsString("'inherit'=>'Inherit'",$contents,$page);self::assertStringContainsString("'yes'=>'Yes'",$contents,$page);self::assertStringContainsString("'no'=>'No'",$contents,$page);}
+	}
+
 	public function test_pages_use_declared_permissions_and_portable_access_denied_response(): void {
 		$root = dirname(__DIR__, 2);
 		$manifest = file_get_contents($root.'/tragofone/app_config.php');
-		$pages = ['index.php', 'global_settings.php', 'tenant_settings.php', 'mappings.php', 'jobs.php', 'reconciliation.php'];
+		$pages = ['index.php', 'global_settings.php', 'tenant_settings.php', 'extension_sync.php', 'qr_code.php', 'mappings.php', 'jobs.php', 'reconciliation.php'];
 
 		foreach ($pages as $page) {
 			$contents = file_get_contents($root.'/tragofone/'.$page);
@@ -31,5 +87,15 @@ final class PackageLayoutTest extends TestCase {
 				self::assertStringContainsString("'{$permission}'", $manifest, "{$page}: {$permission}");
 			}
 		}
+	}
+
+	public function test_qr_page_is_domain_scoped_csrf_protected_and_never_persists_qr_data(): void {
+		$page = file_get_contents(dirname(__DIR__, 2).'/tragofone/qr_code.php');
+		self::assertStringContainsString('m.domain_uuid=:domain_uuid', $page);
+		self::assertStringContainsString('e.enabled,p.sync_enabled', $page);
+		self::assertStringContainsString("validate(\$_SERVER['PHP_SELF'])", $page);
+		self::assertStringContainsString("Cache-Control: no-store", $page);
+		self::assertStringContainsString("method = 'direct'", $page);
+		self::assertStringNotContainsString('v_email_queue_attachments', $page);
 	}
 }

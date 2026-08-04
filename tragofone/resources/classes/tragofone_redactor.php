@@ -1,7 +1,7 @@
 <?php
 
 final class tragofone_redactor {
-	private const SENSITIVE_KEYS = ['password', 'token', 'authorization', 'sip_auth_password', 'encrypted_customer_password', 'encrypted_contact_password'];
+	private const SENSITIVE_KEYS = ['password', 'token', 'authorization', 'sip_auth_password', 'encrypted_customer_password', 'encrypted_contact_password', 'encrypted_salt', 'tragofone_salt', 'myaccount_url', 'brand_sig', 'session'];
 
 	public static function data(array $input): array {
 		$output = [];

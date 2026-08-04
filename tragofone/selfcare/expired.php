@@ -1,0 +1,2 @@
+<?php require_once __DIR__.'/_bootstrap.php'; http_response_code(401); ?>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Session expired</title><link rel="stylesheet" href="assets/selfcare.css"></head><body><div class="sc-error-page"><div class="sc-card"><h1>Session expired</h1><p>For your security, this self-care session has ended.</p><p class="sc-muted">Return to Tragofone and open My Account again.</p></div></div></body></html>

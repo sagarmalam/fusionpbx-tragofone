@@ -28,6 +28,9 @@ interface tragofone_store {
 	public function contact_mapping(string $domain_uuid, string $contact_uuid): ?array;
 	public function contact_mappings(string $domain_uuid): array;
 	public function save_contact_mapping(array $mapping): void;
+	public function selfcare_subject(string $domain_uuid, string $extension_uuid): ?array;
+	public function save_selfcare_subject(array $subject): void;
+	public function revoke_selfcare_subject(string $domain_uuid, string $extension_uuid): void;
 }
 
 /** Adapter around FusionPBX's database class. */
@@ -50,9 +53,9 @@ final class tragofone_fusionpbx_store implements tragofone_store {
 		return tragofone_config::resolve($global, $tenant);
 	}
 	public function changed_extensions(string $domain_uuid, ?string $since): array {
-		$sql = "select e.*, d.domain_name from v_extensions e join v_domains d on d.domain_uuid = e.domain_uuid where e.domain_uuid = :domain_uuid";
+		$sql = "select e.*, d.domain_name, coalesce(v.voicemail_enabled, false) as voicemail_enabled from v_extensions e join v_domains d on d.domain_uuid = e.domain_uuid left join v_voicemails v on v.domain_uuid=e.domain_uuid and v.voicemail_id=(case when e.number_alias ~ '^[0-9]+$' and e.number_alias <> '' then e.number_alias else e.extension end) where e.domain_uuid = :domain_uuid";
 		$params = ['domain_uuid' => $domain_uuid];
-		if ($since !== null) { $sql .= ' and e.update_date > :since'; $params['since'] = $since; }
+		if ($since !== null) { $sql .= ' and (e.update_date > :since or v.update_date > :since)'; $params['since'] = $since; }
 		return $this->select($sql, $params);
 	}
 	public function destinations(string $domain_uuid): array { return $this->select('select * from v_destinations where domain_uuid = :domain_uuid', ['domain_uuid' => $domain_uuid]); }
@@ -112,6 +115,14 @@ final class tragofone_fusionpbx_store implements tragofone_store {
 		return $this->select('select * from v_tragofone_contact_mappings where domain_uuid=:domain_uuid and deleted_at is null', compact('domain_uuid'));
 	}
 	public function save_contact_mapping(array $mapping): void { $this->upsert('v_tragofone_contact_mappings', 'mapping_uuid', $mapping); }
+	public function selfcare_subject(string $domain_uuid, string $extension_uuid): ?array {
+		return $this->first('select * from v_tragofone_selfcare_subjects where domain_uuid=:domain_uuid and extension_uuid=:extension_uuid order by insert_date desc limit 1', compact('domain_uuid', 'extension_uuid'));
+	}
+	public function save_selfcare_subject(array $subject): void { $this->upsert('v_tragofone_selfcare_subjects', 'subject_uuid', $subject); }
+	public function revoke_selfcare_subject(string $domain_uuid, string $extension_uuid): void {
+		$this->execute("update v_tragofone_selfcare_subjects set active=false, update_date=now() where domain_uuid=:domain_uuid and extension_uuid=:extension_uuid and active=true", compact('domain_uuid', 'extension_uuid'));
+		$this->execute("update v_tragofone_selfcare_sessions set revoked_at=now() where subject_uuid in (select subject_uuid from v_tragofone_selfcare_subjects where domain_uuid=:domain_uuid and extension_uuid=:extension_uuid) and revoked_at is null", compact('domain_uuid', 'extension_uuid'));
+	}
 
 	private function select(string $sql, array $parameters = []): array { return $this->database->select($sql, $parameters, 'all') ?: []; }
 	private function first(string $sql, array $parameters = []): ?array { $rows = $this->select($sql, $parameters); return $rows[0] ?? null; }

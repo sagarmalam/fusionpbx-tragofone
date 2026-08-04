@@ -75,6 +75,12 @@ final class tragofone_client {
 			throw new tragofone_api_exception(tragofone_redactor::message((string) $message), $response['status'], $retryable);
 		}
 		if (!is_array($decoded)) { throw new tragofone_api_exception('Tragofone API returned invalid JSON.', $response['status']); }
+		$application_status = strtoupper(trim((string) ($decoded['status'] ?? '')));
+		if (in_array($application_status, ['ERROR', 'FAILED', 'FAILURE'], true)) {
+			$message = trim((string) ($decoded['message'] ?? 'Tragofone API rejected the request.'));
+			if ($message === '') { $message = 'Tragofone API rejected the request.'; }
+			throw new tragofone_api_exception(tragofone_redactor::message($message), $response['status']);
+		}
 		return $decoded;
 	}
 }

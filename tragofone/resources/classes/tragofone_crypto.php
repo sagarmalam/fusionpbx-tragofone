@@ -37,4 +37,8 @@ final class tragofone_crypto {
 		if ($value === false) { throw new RuntimeException('Unable to decrypt credential.'); }
 		return $value;
 	}
+
+	public function fingerprint(string $context, string $value): string {
+		return hash_hmac('sha256', $context."\0".$value, hash('sha256', $this->key_material, true));
+	}
 }
