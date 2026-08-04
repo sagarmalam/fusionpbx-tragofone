@@ -54,6 +54,19 @@ final class PackageLayoutTest extends TestCase {
 		self::assertStringContainsString('selfcare.salts.rotate', $page);
 	}
 
+	public function test_admin_actions_share_uniform_control_metrics(): void {
+		$navigation = file_get_contents(dirname(__DIR__, 2).'/tragofone/resources/views/navigation.php');
+		self::assertStringContainsString('.tfn-shell .btn{', $navigation);
+		self::assertStringContainsString('display:inline-flex!important', $navigation);
+		self::assertStringContainsString('min-height:40px!important', $navigation);
+		self::assertStringContainsString('padding:8px 14px!important', $navigation);
+		self::assertStringContainsString('font-size:13px!important', $navigation);
+		self::assertStringContainsString('border-radius:7px!important', $navigation);
+		self::assertStringContainsString('.tfn-shell .btn-default{', $navigation);
+		self::assertStringContainsString('.tfn-shell .btn-primary{', $navigation);
+		self::assertStringContainsString('.tfn-shell .btn-danger{', $navigation);
+	}
+
 	public function test_selfcare_policy_is_editable_at_global_domain_and_user_levels(): void {
 		$root=dirname(__DIR__,2).'/tragofone';
 		foreach(['global_settings.php','tenant_settings.php','extension_sync.php'] as $page){$contents=file_get_contents($root.'/'.$page);self::assertStringContainsString('selfcare_policy',$contents,$page);self::assertStringContainsString("'inherit'=>'Inherit'",$contents,$page);self::assertStringContainsString("'yes'=>'Yes'",$contents,$page);self::assertStringContainsString("'no'=>'No'",$contents,$page);}
