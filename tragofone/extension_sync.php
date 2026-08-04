@@ -10,18 +10,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$posted_extensions = $_POST['sync_extensions'] ?? []; if (!is_array($posted_extensions)) { $posted_extensions = []; }
 	$posted_selfcare = $_POST['selfcare_policy'] ?? []; if (!is_array($posted_selfcare)) { $posted_selfcare = []; }
 	$selected = array_fill_keys(array_map('strval', $posted_extensions), true);
-	$extensions = $database->select('select extension_uuid from v_extensions where domain_uuid=:domain_uuid', $parameters, 'all') ?: [];
+	$extensions = $database->select('select extension_uuid,extension from v_extensions where domain_uuid=:domain_uuid', $parameters, 'all') ?: [];
 	$policy_rows = $database->select('select * from v_tragofone_extension_policies where domain_uuid=:domain_uuid', $parameters, 'all') ?: [];
 	$policies = []; foreach ($policy_rows as $policy) { $policies[$policy['extension_uuid']] = $policy; }
 	foreach ($extensions as $extension) {
 		$extension_uuid = $extension['extension_uuid']; $existing = $policies[$extension_uuid] ?? [];
+		try { tragofone_normalizer::sip_extension((string) $extension['extension']); $sync_eligible = true; }
+		catch (InvalidArgumentException) { $sync_eligible = false; }
 		$selfcare_policy = tragofone_selfcare_policy::normalize($posted_selfcare[$extension_uuid] ?? tragofone_selfcare_policy::INHERIT);
 		$selfcare_changed = tragofone_selfcare_policy::normalize($existing['selfcare_policy'] ?? tragofone_selfcare_policy::INHERIT) !== $selfcare_policy;
 		$record = [
 			'policy_uuid'=>$existing['policy_uuid'] ?? uuid(), 'domain_uuid'=>$domain_uuid, 'extension_uuid'=>$extension_uuid,
 			// PDO treats execute-array values as strings. Use PostgreSQL boolean
 			// literals so an unchecked box is not bound as an empty string.
-			'sync_enabled'=>isset($selected[$extension_uuid]) ? 'true' : 'false', 'selfcare_policy'=>$selfcare_policy,
+			'sync_enabled'=>$sync_eligible && isset($selected[$extension_uuid]) ? 'true' : 'false', 'selfcare_policy'=>$selfcare_policy,
 			'insert_date'=>$existing['insert_date'] ?? date('c'),
 			'insert_user'=>$existing['insert_user'] ?? $_SESSION['user_uuid'], 'update_date'=>date('c'), 'update_user'=>$_SESSION['user_uuid'],
 		];
@@ -44,7 +46,12 @@ $default_sync = !array_key_exists('default_extension_sync', $tenant) || $tenant[
 $global_rows=$database->select('select * from v_tragofone_global_config order by update_date desc nulls last limit 1',[],'all')?:[];$global=$global_rows[0]??[];
 $global_selfcare_policy=tragofone_selfcare_policy::global($global);$tenant_selfcare_policy=tragofone_selfcare_policy::normalize($tenant['selfcare_policy']??tragofone_selfcare_policy::INHERIT);
 $extensions = $database->select("select e.extension_uuid,e.extension,e.effective_caller_id_name,e.enabled,p.sync_enabled,p.selfcare_policy,m.tragofone_user_id,m.sync_status,m.last_synced_at from v_extensions e left join v_tragofone_extension_policies p on p.domain_uuid=e.domain_uuid and p.extension_uuid=e.extension_uuid left join v_tragofone_extension_mappings m on m.domain_uuid=e.domain_uuid and m.extension_uuid=e.extension_uuid and m.deleted_at is null where e.domain_uuid=:domain_uuid order by e.extension", $parameters, 'all') ?: [];
-$selected_count = 0;$selfcare_count=0; foreach ($extensions as &$extension) { $extension['effective_sync'] = $extension['sync_enabled'] === null ? $default_sync : tragofone_normalizer::boolean($extension['sync_enabled']);$extension['selfcare_policy']=tragofone_selfcare_policy::normalize($extension['selfcare_policy']??tragofone_selfcare_policy::INHERIT);$extension['effective_selfcare']=tragofone_selfcare_policy::enabled($global_selfcare_policy,$tenant_selfcare_policy,$extension['selfcare_policy']); if ($extension['effective_sync']) { $selected_count++; }if($extension['effective_sync']&&$extension['effective_selfcare']){$selfcare_count++;} } unset($extension);
+$selected_count = 0;$selfcare_count=0; foreach ($extensions as &$extension) {
+	try { tragofone_normalizer::sip_extension((string) $extension['extension']); $extension['sync_eligible']=true;$extension['sync_error']=null; }
+	catch (InvalidArgumentException $error) { $extension['sync_eligible']=false;$extension['sync_error']=$error->getMessage(); }
+	$extension['effective_sync'] = $extension['sync_eligible'] && ($extension['sync_enabled'] === null ? $default_sync : tragofone_normalizer::boolean($extension['sync_enabled']));
+	$extension['selfcare_policy']=tragofone_selfcare_policy::normalize($extension['selfcare_policy']??tragofone_selfcare_policy::INHERIT);$extension['effective_selfcare']=tragofone_selfcare_policy::enabled($global_selfcare_policy,$tenant_selfcare_policy,$extension['selfcare_policy']); if ($extension['effective_sync']) { $selected_count++; }if($extension['effective_sync']&&$extension['effective_selfcare']){$selfcare_count++;}
+} unset($extension);
 $token_generator = new token; $token = $token_generator->create($_SERVER['PHP_SELF']); require_once 'resources/header.php';
 $tragofone_page = 'extensions'; $tragofone_title = 'Extension Synchronization';
 $tragofone_subtitle = 'Choose which FusionPBX SIP extensions may be provisioned into Tragofone.';
@@ -61,8 +68,8 @@ $tragofone_subtitle = 'Choose which FusionPBX SIP extensions may be provisioned 
 	<div class="tf-card"><div class="tf-toolbar"><div class="tf-toolbar-left"><button class="btn btn-default" id="select_all" type="button">Select all</button><button class="btn btn-default" id="select_none" type="button">Select none</button></div><input id="extension_search" class="formfld tf-search" type="search" placeholder="Search extension or name"></div>
 	<table class="tf-table"><thead><tr><th style="width:65px">Sync</th><th>Extension</th><th>FusionPBX</th><th>Self-care</th><th>Tragofone mapping</th><th>Last synchronized</th></tr></thead><tbody id="extension_rows">
 	<?php foreach ($extensions as $extension) { $pbx_enabled=tragofone_normalizer::boolean($extension['enabled'] ?? false); ?><tr data-search="<?= escape(strtolower(($extension['extension'] ?? '').' '.($extension['effective_caller_id_name'] ?? ''))) ?>">
-		<td><input class="tf-switch sync-choice" type="checkbox" name="sync_extensions[]" value="<?= escape($extension['extension_uuid']) ?>" <?= $extension['effective_sync'] ? 'checked' : '' ?> <?= !permission_exists('tragofone_extension_sync_edit') ? 'disabled' : '' ?>></td>
-		<td><span class="tf-extension"><?= escape($extension['extension']) ?></span><span class="tf-name"><?= escape($extension['effective_caller_id_name'] ?: 'No caller-ID name') ?></span></td>
+		<td><input class="tf-switch sync-choice" type="checkbox" name="sync_extensions[]" value="<?= escape($extension['extension_uuid']) ?>" <?= $extension['effective_sync'] ? 'checked' : '' ?> <?= !permission_exists('tragofone_extension_sync_edit') || !$extension['sync_eligible'] ? 'disabled' : '' ?>></td>
+		<td><span class="tf-extension"><?= escape($extension['extension']) ?></span><span class="tf-name"><?= escape($extension['effective_caller_id_name'] ?: 'No caller-ID name') ?></span><?php if (!$extension['sync_eligible']) { ?><span class="tf-name" style="color:#b42318"><?= escape($extension['sync_error']) ?></span><?php } ?></td>
 		<td><span class="tf-badge <?= $pbx_enabled ? 'ok' : 'off' ?>"><?= $pbx_enabled ? 'Enabled' : 'Disabled' ?></span></td>
 		<td><select class="formfld tf-policy" name="selfcare_policy[<?= escape($extension['extension_uuid']) ?>]" <?= !permission_exists('tragofone_extension_sync_edit')?'disabled':'' ?>><?php foreach(['inherit'=>'Inherit','yes'=>'Yes','no'=>'No'] as $value=>$label){?><option value="<?= $value ?>" <?= $extension['selfcare_policy']===$value?'selected':'' ?>><?= $label ?></option><?php }?></select><span class="tf-name">Effective: <?= $extension['effective_selfcare']?'Yes':'No' ?></span></td>
 		<td><?php if (!empty($extension['tragofone_user_id'])) { ?><span class="tf-badge <?= in_array($extension['sync_status'], ['synchronized','created'], true) ? 'ok' : (in_array($extension['sync_status'], ['excluded','disabled'], true) ? 'off' : 'warn') ?>"><?= escape($extension['sync_status']) ?></span><span class="tf-name">User ID <?= escape($extension['tragofone_user_id']) ?></span><?php } else { ?><span class="tf-badge off">Not provisioned</span><?php } ?></td>

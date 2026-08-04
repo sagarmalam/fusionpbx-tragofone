@@ -47,6 +47,9 @@ final class tragofone_worker {
 		$extension = $payload['extension'];
 		$application_password = null;
 		if ($job['operation'] === 'create_user') {
+			// Validate before creating any remote resource. FusionPBX itself
+			// intentionally permits identifiers outside Tragofone's boundary.
+			$extension['extension'] = tragofone_normalizer::sip_extension((string) ($extension['extension'] ?? ''));
 			$application_password = tragofone_normalizer::application_password((string) ($extension['password'] ?? ''));
 			$username = tragofone_normalizer::username($extension['extension'], $extension['domain_name']);
 			$result = $client->create_user([
@@ -74,6 +77,7 @@ final class tragofone_worker {
 			$mapping['record_hash'] = $job['record_hash']; $mapping['sync_status'] = 'excluded'; $mapping['last_operation'] = 'exclude_user';
 			$mapping['delete_after'] = null; $mapping['last_synced_at'] = gmdate('c'); $mapping['update_date'] = gmdate('c'); $this->disable_selfcare($client, $mapping); $this->store->save_extension_mapping($mapping); return;
 		}
+		$extension['extension'] = tragofone_normalizer::sip_extension((string) ($extension['extension'] ?? ''));
 		if ($application_password === null) {
 			$application_password = tragofone_normalizer::application_password((string) ($extension['password'] ?? ''));
 		}

@@ -53,9 +53,9 @@ final class tragofone_fusionpbx_store implements tragofone_store {
 		return tragofone_config::resolve($global, $tenant);
 	}
 	public function changed_extensions(string $domain_uuid, ?string $since): array {
-		$sql = "select e.*, d.domain_name from v_extensions e join v_domains d on d.domain_uuid = e.domain_uuid where e.domain_uuid = :domain_uuid";
+		$sql = "select e.*, d.domain_name, coalesce(v.voicemail_enabled, false) as voicemail_enabled from v_extensions e join v_domains d on d.domain_uuid = e.domain_uuid left join v_voicemails v on v.domain_uuid=e.domain_uuid and v.voicemail_id=(case when e.number_alias ~ '^[0-9]+$' and e.number_alias <> '' then e.number_alias else e.extension end) where e.domain_uuid = :domain_uuid";
 		$params = ['domain_uuid' => $domain_uuid];
-		if ($since !== null) { $sql .= ' and e.update_date > :since'; $params['since'] = $since; }
+		if ($since !== null) { $sql .= ' and (e.update_date > :since or v.update_date > :since)'; $params['since'] = $since; }
 		return $this->select($sql, $params);
 	}
 	public function destinations(string $domain_uuid): array { return $this->select('select * from v_destinations where domain_uuid = :domain_uuid', ['domain_uuid' => $domain_uuid]); }

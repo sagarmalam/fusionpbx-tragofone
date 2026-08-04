@@ -14,8 +14,10 @@ final class tragofone_scanner {
 		foreach ($this->store->changed_extensions($domain_uuid, $since) as $extension) {
 			$extension_uuid = $extension['extension_uuid']; $seen_extensions[$extension_uuid] = true;
 			$extension_policy = $extension_policies[$extension_uuid] ?? [];
-			$sync_enabled = array_key_exists('sync_enabled', $extension_policy) && $extension_policy['sync_enabled'] !== null
-				? tragofone_normalizer::boolean($extension_policy['sync_enabled']) : $default_extension_sync;
+			try { tragofone_normalizer::sip_extension((string) ($extension['extension'] ?? '')); $sync_eligible = true; }
+			catch (InvalidArgumentException) { $sync_eligible = false; }
+			$sync_enabled = $sync_eligible && (array_key_exists('sync_enabled', $extension_policy) && $extension_policy['sync_enabled'] !== null
+				? tragofone_normalizer::boolean($extension_policy['sync_enabled']) : $default_extension_sync);
 			$selfcare_user_policy = tragofone_selfcare_policy::normalize($extension_policy['selfcare_policy'] ?? tragofone_selfcare_policy::INHERIT);
 			$selfcare_enabled = tragofone_selfcare_policy::enabled(
 				$tenant['selfcare_global_policy'] ?? tragofone_selfcare_policy::INHERIT,
@@ -34,7 +36,7 @@ final class tragofone_scanner {
 			]));
 			$source = ['extension' => $extension, 'dids' => $dids, 'sync_enabled' => $sync_enabled,
 				'selfcare_policy' => $selfcare_user_policy, 'selfcare_enabled' => $selfcare_enabled,
-				'tenant_policy' => $tenant_policy, 'policy_version' => 7];
+				'tenant_policy' => $tenant_policy, 'policy_version' => 8];
 			$hash = tragofone_normalizer::hash($source);
 			$previous = $this->store->snapshot($domain_uuid, 'extension', $extension_uuid);
 			$mapping = $this->store->extension_mapping($domain_uuid, $extension_uuid);

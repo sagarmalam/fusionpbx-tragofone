@@ -5,6 +5,27 @@ final class tragofone_normalizer {
 		return in_array($value, [true, 1, '1', 'true', 'TRUE', 'yes', 'Y'], true);
 	}
 
+	public static function sip_extension(string $extension): string {
+		$extension = trim($extension);
+		$length = mb_strlen($extension);
+		if ($length < 2 || $length > 15) {
+			throw new InvalidArgumentException('FusionPBX extension must contain 2 to 15 characters for Tragofone.');
+		}
+		if (!preg_match('/^[A-Za-z0-9]+$/', $extension)) {
+			throw new InvalidArgumentException('FusionPBX extension must contain only letters and numbers for Tragofone.');
+		}
+		return $extension;
+	}
+
+	public static function call_timeout(mixed $value): string {
+		$value = trim((string) $value);
+		if ($value === '') { return '30'; }
+		if (!ctype_digit($value) || (int) $value < 1) {
+			throw new InvalidArgumentException('FusionPBX call timeout must be a positive whole number.');
+		}
+		return (string) ((int) $value);
+	}
+
 	public static function username(string $extension, string $domain): string {
 		$domain = function_exists('idn_to_ascii') ? (idn_to_ascii($domain) ?: $domain) : $domain;
 		$value = strtolower(trim($extension).'@'.trim($domain));

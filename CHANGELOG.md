@@ -6,6 +6,10 @@
 - Add per-extension one-time launch subjects, encrypted salts, server-side sessions, replay protection, rate limiting, CSRF protection, and session revocation.
 - Add responsive account summary, DND and forwarding, FusionPBX Visual Voicemail, voicemail email, and PIN self-care.
 - Add Inherit/Yes/No self-care access controls at global, domain, and individual-user levels.
+- Synchronize FusionPBX Call Timeout to Tragofone No Answer Timeout (#9).
+- Synchronize Emergency Caller ID Number to Tragofone Emergency Numbers, including removal (#10).
+- Enforce Tragofone's 2–15 character SIP-extension boundary while supporting numeric and alphanumeric values (#11).
+- Synchronize the FusionPBX mailbox Voicemail Enabled state to Tragofone voicemail enablement (#12).
 - Add Superadmin branding controls, image validation, WCAG contrast checks, live previews, global reprovisioning, interactive mockups, and portal documentation.
 
 - Fix tenant outbound-proxy provisioning by exposing its server/port settings, defaulting blank proxy values to the resolved SIP endpoint, and including tenant SIP policy in extension change detection (#4).

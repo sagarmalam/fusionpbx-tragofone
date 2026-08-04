@@ -128,7 +128,7 @@ final class ExtensionLifecycleTest extends TestCase {
 
 	public function test_same_uuid_returning_during_grace_is_reenabled_even_when_hash_is_unchanged(): void {
 		$store = new extension_lifecycle_store(); $store->extension_map['ext-1'] = $this->mapping('ext-1', 'deletion_pending'); $store->extensions = [$this->extension('ext-1', true)];
-		$hash = tragofone_normalizer::hash(['extension'=>$store->extensions[0], 'dids'=>['1001'], 'sync_enabled'=>true, 'selfcare_policy'=>'inherit', 'selfcare_enabled'=>false, 'tenant_policy'=>[], 'policy_version'=>7]);
+		$hash = tragofone_normalizer::hash(['extension'=>$store->extensions[0], 'dids'=>['1001'], 'sync_enabled'=>true, 'selfcare_policy'=>'inherit', 'selfcare_enabled'=>false, 'tenant_policy'=>[], 'policy_version'=>8]);
 		$store->snapshots['extension:ext-1'] = ['snapshot_uuid'=>'snapshot-1','record_hash'=>$hash];
 		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1'], null));
 		self::assertSame('enable_user', $store->jobs[0]['operation']);
@@ -141,6 +141,13 @@ final class ExtensionLifecycleTest extends TestCase {
 		$store->snapshots = []; $store->sync_policies = [['extension_uuid'=>'ext-1','sync_enabled'=>true]];
 		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1','default_extension_sync'=>false], null));
 		self::assertSame('create_user', $store->jobs[0]['operation']);
+	}
+
+	public function test_unsupported_extension_length_is_not_queued_for_provisioning(): void {
+		$store = new extension_lifecycle_store(); $extension = $this->extension(); $extension['extension'] = '1'; $store->extensions = [$extension];
+		self::assertSame(0, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1'], null));
+		self::assertSame([], $store->jobs);
+		self::assertArrayHasKey('extension:ext-1', $store->snapshots);
 	}
 
 	public function test_tenant_sip_policy_change_queues_configuration_update(): void {

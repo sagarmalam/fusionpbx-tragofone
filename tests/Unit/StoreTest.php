@@ -17,6 +17,9 @@ if (!class_exists('database', false)) {
 		}
 
 		public function select($sql, $parameters = null, $return_type = 'all'): mixed {
+			$this->sql = $sql;
+			$this->parameters = $parameters ?? [];
+			$this->return_type = $return_type;
 			return [];
 		}
 	}
@@ -58,5 +61,14 @@ final class StoreTest extends TestCase {
 		$this->expectException(RuntimeException::class);
 		$store = new tragofone_fusionpbx_store(new database());
 		$store->save_did_mapping(['mapping_uuid'=>'map-1','enabled'=>false]);
+	}
+
+	public function test_extension_source_includes_voicemail_state_and_its_update_time(): void {
+		$database = new database(); $store = new tragofone_fusionpbx_store($database);
+		$store->changed_extensions('domain-1', '2026-08-01T00:00:00Z');
+		$sql = strtolower($database->sql);
+		self::assertStringContainsString('left join v_voicemails', $sql);
+		self::assertStringContainsString('v.voicemail_enabled', $sql);
+		self::assertStringContainsString('v.update_date > :since', $sql);
 	}
 }
