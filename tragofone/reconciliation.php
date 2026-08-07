@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	try {
 		$tenant = $store->tenant($domain_uuid);
 		if ($tenant === null) { $message = 'The tenant is disabled or paused. Resume it in Tenant Settings before reconciliation.'; $message_class = 'warning'; }
-		else { $count = (new tragofone_scanner($store))->scan_tenant($tenant, null); $message = "Reconciliation completed its comparison and queued {$count} repair job(s)."; }
+		else { $count = (new tragofone_scanner($store))->reconcile_tenant($tenant); $message = "Reconciliation completed its comparison and queued {$count} repair job(s)."; }
 	} catch (tragofone_tenant_configuration_exception $error) { $message = $error->getMessage(); $message_class = 'warning'; }
 }
 $state_rows = $database->select('select last_scan_at,last_reconcile_at,worker_heartbeat_at,fusionpbx_version,adapter_version from v_tragofone_sync_state where domain_uuid=:domain_uuid order by last_scan_at desc nulls last limit 1', compact('domain_uuid'), 'all') ?: []; $state = $state_rows[0] ?? [];

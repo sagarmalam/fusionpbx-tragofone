@@ -17,6 +17,8 @@ final class extension_lifecycle_store implements tragofone_store {
 	public array $did_map = [];
 	public array $selfcare_subjects = [];
 	public array $tenant_config = [];
+	public int $dead_jobs = 0;
+	public array $retried_domains = [];
 
 	public function enabled_tenants(): array { return []; }
 	public function tenant(string $domain_uuid): ?array { return array_replace(['domain_uuid' => $domain_uuid, 'default_profile_id' => 1, 'sip_server' => 'pbx.test', 'sip_port' => 5061, 'sip_protocol' => 'tls', 'voicemail_code' => '*97'], $this->tenant_config); }
@@ -33,6 +35,7 @@ final class extension_lifecycle_store implements tragofone_store {
 	}
 	public function complete_job(string $job_uuid): void { $this->completed[] = $job_uuid; }
 	public function retry_job(string $job_uuid, int $attempt, int $delay, string $message): void { $this->retried[] = compact('job_uuid', 'attempt', 'delay', 'message'); }
+	public function retry_dead_jobs(string $domain_uuid): int { $this->retried_domains[] = $domain_uuid; $count = $this->dead_jobs; $this->dead_jobs = 0; return $count; }
 	public function fail_job(string $job_uuid, string $message): void { $this->failed[] = compact('job_uuid', 'message'); }
 	public function extension_mapping(string $domain_uuid, string $extension_uuid): ?array { return $this->extension_map[$extension_uuid] ?? null; }
 	public function extension_mapping_by_extension(string $domain_uuid, string $extension): ?array {
@@ -74,6 +77,13 @@ final class ExtensionLifecycleTest extends TestCase {
 
 	private function extension(string $uuid = 'ext-1', bool $enabled = true): array {
 		return ['domain_uuid' => 'domain-1', 'domain_name' => 'company.test', 'extension_uuid' => $uuid, 'extension' => '1001', 'password' => 'secret', 'enabled' => $enabled, 'effective_caller_id_name' => 'Test', 'effective_caller_id_number' => '1001'];
+	}
+
+	public function test_reconciliation_retries_dead_jobs_when_the_scan_finds_no_changes(): void {
+		$store = new extension_lifecycle_store(); $store->dead_jobs = 2;
+		self::assertSame(2, (new tragofone_scanner($store))->reconcile_tenant(['domain_uuid' => 'domain-1']));
+		self::assertSame(['domain-1'], $store->retried_domains);
+		self::assertSame([], $store->jobs);
 	}
 
 	public function test_scanner_queues_disable_and_enable_transitions(): void {

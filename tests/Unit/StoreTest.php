@@ -50,6 +50,17 @@ final class StoreTest extends TestCase {
 		self::assertNull($store->claim_job('worker-2'));
 	}
 
+	public function test_reconciliation_retries_only_dead_jobs_for_the_selected_tenant(): void {
+		$database = new database(); $database->result = ['total' => '2'];
+		$store = new tragofone_fusionpbx_store($database);
+
+		self::assertSame(2, $store->retry_dead_jobs('domain-1'));
+		self::assertSame(['domain_uuid' => 'domain-1'], $database->parameters);
+		self::assertSame('row', $database->return_type);
+		self::assertStringContainsString("domain_uuid=:domain_uuid and status='dead'", strtolower($database->sql));
+		self::assertStringContainsString("set status='pending', attempt_count=0", strtolower($database->sql));
+	}
+
 	public function test_upsert_serializes_false_as_postgresql_boolean_literal(): void {
 		$database = new database(); $database->result = [];
 		$store = new tragofone_fusionpbx_store($database);

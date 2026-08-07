@@ -14,7 +14,7 @@ The normalized FusionPBX Effective Outbound Caller ID is trusted and placed firs
 
 FusionPBX phonebook records are normalized from `v_contacts`, `v_contact_phones`, and `v_contact_emails`, then written to the tenant-wide Tragofone Enterprise Directory using the company-admin token. `contact_uuid → ed_id` mappings make updates deterministic and ensure deletion affects only companion-owned records. Tragofone Cloud Contacts remain disabled.
 
-Transient failures retry after 1, 5, and 15 minutes, then 1, 3, and 6 hours. A customer `401` or identity mismatch pauses only the affected tenant and leaves a visible dead job. Operators can retry eligible jobs and run a full tenant reconciliation from the FusionPBX UI. Expired `processing` locks are reclaimable after a worker crash.
+Transient failures retry after 1, 5, and 15 minutes, then 1, 3, and 6 hours. A customer `401` or identity mismatch pauses only the affected tenant and leaves a visible dead job. Operators can retry individual eligible jobs, while a full tenant reconciliation returns every dead job for that tenant to the pending queue before scanning current state. Expired `processing` locks are reclaimable after a worker crash.
 
 Disabling an extension disables the mapped Tragofone user immediately. Deleting an extension does the same, marks the mapping `deletion_pending`, and waits for the configured grace period (24 hours by default) before deleting the mapped user. Recreating the same extension during the grace period rebinds the companion-owned mapping and re-enables the same Tragofone `usr_id`.
 

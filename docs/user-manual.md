@@ -253,7 +253,7 @@ Retries are tenant-scoped. Never retry authentication failures before correcting
 
 ### Run reconciliation
 
-Use **Reconciliation → Run reconciliation** after correcting configuration, recovering from an outage, or investigating drift. Reconciliation compares current FusionPBX entities with companion-owned mappings and queues only required repairs. It does not adopt or delete unrelated Tragofone records.
+Use **Reconciliation → Run reconciliation** after correcting configuration, recovering from an outage, or investigating drift. Reconciliation first returns all dead jobs for the active tenant to the pending queue, then compares current FusionPBX entities with companion-owned mappings and queues only required repairs. It does not adopt or delete unrelated Tragofone records.
 
 ### Resume a paused tenant
 

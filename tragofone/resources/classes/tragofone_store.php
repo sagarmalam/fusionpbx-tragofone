@@ -13,6 +13,7 @@ interface tragofone_store {
 	public function claim_job(string $worker_id): ?array;
 	public function complete_job(string $job_uuid): void;
 	public function retry_job(string $job_uuid, int $attempt, int $delay, string $message): void;
+	public function retry_dead_jobs(string $domain_uuid): int;
 	public function fail_job(string $job_uuid, string $message): void;
 	public function extension_mapping(string $domain_uuid, string $extension_uuid): ?array;
 	public function extension_mapping_by_extension(string $domain_uuid, string $extension): ?array;
@@ -76,6 +77,12 @@ final class tragofone_fusionpbx_store implements tragofone_store {
 	public function complete_job(string $job_uuid): void { $this->execute("update v_tragofone_sync_jobs set status='completed', completed_at=now(), lock_owner=null, lock_expires_at=null where job_uuid=:uuid", ['uuid' => $job_uuid]); }
 	public function retry_job(string $job_uuid, int $attempt, int $delay, string $message): void {
 		$this->execute("update v_tragofone_sync_jobs set status='retry', attempt_count=:attempt, next_attempt_at=now() + (:delay || ' seconds')::interval, error_message=:message, lock_owner=null, lock_expires_at=null where job_uuid=:uuid", ['attempt' => $attempt, 'delay' => $delay, 'message' => tragofone_redactor::message($message), 'uuid' => $job_uuid]);
+	}
+	public function retry_dead_jobs(string $domain_uuid): int {
+		$sql = "with retried as (update v_tragofone_sync_jobs set status='pending', attempt_count=0, next_attempt_at=null, http_status=null, error_code=null, error_message=null, lock_owner=null, lock_expires_at=null, started_at=null, completed_at=null where domain_uuid=:domain_uuid and status='dead' returning job_uuid) select count(*) as total from retried";
+		$result = $this->database->execute($sql, compact('domain_uuid'), 'row');
+		if (!is_array($result)) { throw new RuntimeException('FusionPBX database write failed.'); }
+		return (int) ($result['total'] ?? 0);
 	}
 	public function fail_job(string $job_uuid, string $message): void { $this->execute("update v_tragofone_sync_jobs set status='dead', error_message=:message, lock_owner=null, lock_expires_at=null where job_uuid=:uuid", ['message' => tragofone_redactor::message($message), 'uuid' => $job_uuid]); }
 	public function extension_mapping(string $domain_uuid, string $extension_uuid): ?array { return $this->first('select * from v_tragofone_extension_mappings where domain_uuid=:domain_uuid and extension_uuid=:extension_uuid and deleted_at is null', compact('domain_uuid', 'extension_uuid')); }
