@@ -15,13 +15,16 @@
 - Add Superadmin branding controls, image validation, WCAG contrast checks, live previews, global reprovisioning, interactive mockups, and portal documentation.
 - Keep newly provisioned My Account URLs within Tragofone's 200-character limit by signing a compact subject and global brand-version reference, while retaining legacy launch compatibility.
 - Render live Tragofone raw QR payloads as validated PNG images with PHP GD and FusionPBX's bundled QR library.
+- Load FusionPBX's QR error-correction dependency so raw Tragofone payloads can be previewed and emailed (#15).
 - Treat HTTP 200 application-error envelopes as API failures and reject user creation responses without a positive `usr_id`.
 - Fix clearing a self-care voicemail notification address and prevent intrinsic mobile navigation overflow at 320px.
 - Remove the manual logout control from the Tragofone-embedded self-care header; sessions continue to expire or revoke through the existing security policy.
 - Add an authenticated, tenant-isolated self-care QR view so users can enroll another Tragofone device without opening the administrative portal.
 - Standardize link, secondary, primary, table, and form actions across every Tragofone administration page, including full-width mobile form actions.
+- Preserve the source-label casing for administration buttons instead of inheriting variant-specific uppercase transforms (#19).
 - Keep self-care sessions active for 24 hours by default, with configurable idle and absolute limits between 5 minutes and 24 hours.
 - Retry all tenant-scoped dead synchronization jobs when full reconciliation runs (#13).
+- Confirm successful QR preview refreshes in the administration portal (#18).
 
 - Fix tenant outbound-proxy provisioning by exposing its server/port settings, defaulting blank proxy values to the resolved SIP endpoint, and including tenant SIP policy in extension change detection (#4).
 - Synchronize Effective Caller ID Name changes to the mapped Tragofone account name while keeping the mapping's current FusionPBX extension number accurate (#6).

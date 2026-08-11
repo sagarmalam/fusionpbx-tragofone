@@ -26,6 +26,23 @@ final class QrCodeTest extends TestCase {
 		self::assertSame('image/png', $qr['mime_type']);
 	}
 
+	public function test_loads_fusionpbx_error_correction_level_before_qr_code(): void {
+		$directory = sys_get_temp_dir().'/tragofone-qr-'.bin2hex(random_bytes(8));
+		self::assertTrue(mkdir($directory));
+		try {
+			file_put_contents($directory.'/QRErrorCorrectLevel.php', "<?php\nclass QRErrorCorrectLevel { public const M = 0; }\n");
+			file_put_contents($directory.'/QRCode.php', "<?php\nif (!class_exists('QRErrorCorrectLevel', false)) { throw new RuntimeException('error correction level was not loaded first'); }\nclass QRCode {}\n");
+			$loader = new ReflectionMethod(tragofone_qr_code::class, 'load_renderer');
+			$loader->invoke(null, $directory);
+			self::assertTrue(class_exists(QRErrorCorrectLevel::class, false));
+			self::assertTrue(class_exists(QRCode::class, false));
+		} finally {
+			@unlink($directory.'/QRCode.php');
+			@unlink($directory.'/QRErrorCorrectLevel.php');
+			@rmdir($directory);
+		}
+	}
+
 	/** @dataProvider invalid_responses */
 	public function test_rejects_non_images_and_spoofed_image_signatures(array $response): void {
 		$this->expectException(RuntimeException::class);

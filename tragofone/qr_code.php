@@ -66,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			$message = 'The QR code was sent successfully.'; $default_email = $recipient; $qr = null;
 		} else {
 			tragofone_qr_audit($database, $domain_uuid, $extension_uuid, 'tragofone.qr.preview', 'Tragofone QR viewed for extension '.$mapping['extension'].'.');
+			$message = 'The QR code was refreshed successfully.';
 		}
 	} catch (Throwable $error) {
 		if (($error instanceof tragofone_api_exception && $error->http_status === 401) || $error instanceof tragofone_tenant_identity_exception || $error instanceof tragofone_tenant_configuration_exception) {
