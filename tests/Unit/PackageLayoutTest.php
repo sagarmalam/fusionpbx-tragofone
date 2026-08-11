@@ -67,6 +67,17 @@ final class PackageLayoutTest extends TestCase {
 		self::assertStringContainsString('.tfn-shell .btn-danger{', $navigation);
 	}
 
+	public function test_qr_actions_preserve_consistent_source_label_casing(): void {
+		$app = dirname(__DIR__, 2).'/tragofone';
+		$navigation = file_get_contents($app.'/resources/views/navigation.php');
+		$page = file_get_contents($app.'/qr_code.php');
+
+		self::assertStringContainsString('text-transform:none!important', $navigation);
+		self::assertStringContainsString('Refresh QR Code', $page);
+		self::assertStringContainsString('Download QR', $page);
+		self::assertStringContainsString('Email QR', $page);
+	}
+
 	public function test_selfcare_policy_is_editable_at_global_domain_and_user_levels(): void {
 		$root=dirname(__DIR__,2).'/tragofone';
 		foreach(['global_settings.php','tenant_settings.php','extension_sync.php'] as $page){$contents=file_get_contents($root.'/'.$page);self::assertStringContainsString('selfcare_policy',$contents,$page);self::assertStringContainsString("'inherit'=>'Inherit'",$contents,$page);self::assertStringContainsString("'yes'=>'Yes'",$contents,$page);self::assertStringContainsString("'no'=>'No'",$contents,$page);}
