@@ -45,6 +45,33 @@ final class SelfCareThemeTest extends TestCase {
 
 	public function test_provisioning_creates_an_encrypted_subject_and_enables_my_account(): void {
 		$store=new extension_lifecycle_store();$crypto=new tragofone_crypto(str_repeat('k',32));$tenant=['domain_uuid'=>'domain-1','selfcare_enabled'=>true,'selfcare_base_url'=>'https://pbx.example/app/tragofone/selfcare','selfcare_brand_version'=>3,...tragofone_selfcare_theme::DEFAULTS];$extension=['extension_uuid'=>'ext-1','extension'=>'1001'];
-		$account=tragofone_selfcare_provisioning::account($store,$crypto,$tenant,$extension);self::assertSame('TRUE',$account['myaccount_status']);self::assertStringContainsString('/app/tragofone/sc.php?',$account['myaccount_url']);self::assertArrayHasKey('ext-1',$store->selfcare_subjects);self::assertSame(22,strlen($crypto->decrypt($store->selfcare_subjects['ext-1']['encrypted_salt'])));
+		$account=tragofone_selfcare_provisioning::account($store,$crypto,$tenant,$extension);self::assertSame('TRUE',$account['myaccount_status']);self::assertStringContainsString('/app/tragofone/sc.php?',$account['myaccount_url']);self::assertArrayHasKey('ext-1',$store->selfcare_subjects);$salt=$crypto->decrypt($store->selfcare_subjects['ext-1']['encrypted_salt']);self::assertMatchesRegularExpression('/^[a-f0-9]{32}$/',$salt);self::assertLessThanOrEqual(200,strlen($account['myaccount_url']));
+	}
+
+	public function test_launch_accepts_epoch_seconds_and_milliseconds(): void {
+		self::assertSame(1_723_391_234,tragofone_selfcare_launch::timestamp_seconds('1723391234'));
+		self::assertSame(1_723_391_234,tragofone_selfcare_launch::timestamp_seconds('1723391234000'));
+		self::assertNull(tragofone_selfcare_launch::timestamp_seconds('17233912340000'));
+		self::assertNull(tragofone_selfcare_launch::timestamp_seconds('not-a-time'));
+	}
+
+	public function test_provisioning_rotates_legacy_base64url_salts(): void {
+		$store=new extension_lifecycle_store();$crypto=new tragofone_crypto(str_repeat('k',32));$legacy='nwOw1CxWPqUGcd6qqtYQ_g';
+		$store->selfcare_subjects['ext-1']=['subject_uuid'=>'00000000-0000-4000-8000-000000000001','domain_uuid'=>'domain-1','extension_uuid'=>'ext-1','encrypted_salt'=>$crypto->encrypt($legacy),'active'=>true,'brand_version'=>2];
+		$tenant=['domain_uuid'=>'domain-1','selfcare_enabled'=>true,'selfcare_base_url'=>'https://pbx.example/app/tragofone/selfcare','selfcare_brand_version'=>3,...tragofone_selfcare_theme::DEFAULTS];
+		tragofone_selfcare_provisioning::account($store,$crypto,$tenant,['extension_uuid'=>'ext-1','extension'=>'1001']);
+		$rotated=$crypto->decrypt($store->selfcare_subjects['ext-1']['encrypted_salt']);self::assertNotSame($legacy,$rotated);self::assertMatchesRegularExpression('/^[a-f0-9]{32}$/',$rotated);self::assertTrue($store->selfcare_subjects['ext-1']['active']);
+	}
+
+	public function test_launch_hash_uses_the_original_timestamp_value(): void {
+		$salt='0123456789abcdef0123456789abcdef';$time='1723391234000';$hash=md5($salt.$time);
+		self::assertTrue(tragofone_selfcare_launch::hash_valid($salt,$time,$hash));
+		self::assertTrue(tragofone_selfcare_launch::hash_valid($salt,$time,strtoupper($hash)));
+		self::assertFalse(tragofone_selfcare_launch::hash_valid($salt,$time,md5($salt.'1723391234')));
+	}
+
+	public function test_launch_rejection_codes_do_not_expose_sensitive_details(): void {
+		self::assertSame('SC-LAUNCH-03',tragofone_selfcare_launch::rejection_code(new RuntimeException('Signed launch expired.')));
+		self::assertSame('SC-LAUNCH-02',tragofone_selfcare_launch::rejection_code(new RuntimeException('secret implementation detail')));
 	}
 }
