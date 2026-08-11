@@ -71,4 +71,26 @@ final class StoreTest extends TestCase {
 		self::assertStringContainsString('v.voicemail_enabled', $sql);
 		self::assertStringContainsString('v.update_date > :since', $sql);
 	}
+
+	public function test_selfcare_session_expiry_uses_the_database_clock(): void {
+		$database = new database(); $database->result = true;
+		$repository = new tragofone_selfcare_repository($database, new tragofone_crypto(str_repeat('k', 32)));
+
+		$session = $repository->create_session(
+			['subject_uuid'=>'00000000-0000-4000-8000-000000000001'],
+			['brand_name'=>'Acme Voice'],
+			900,
+			1800,
+			'192.0.2.1',
+			'Tragofone Test Client'
+		);
+
+		self::assertMatchesRegularExpression('/^[0-9a-f-]{36}\.[A-Za-z0-9_-]{40,}$/i', $session['cookie']);
+		self::assertStringContainsString("now() + (:idle_seconds || ' seconds')::interval", strtolower($database->sql));
+		self::assertStringContainsString("now() + (:absolute_seconds || ' seconds')::interval", strtolower($database->sql));
+		self::assertSame(900, $database->parameters['idle_seconds']);
+		self::assertSame(1800, $database->parameters['absolute_seconds']);
+		self::assertArrayNotHasKey('idle_expires_at', $database->parameters);
+		self::assertArrayNotHasKey('absolute_expires_at', $database->parameters);
+	}
 }
