@@ -25,6 +25,7 @@
 - Keep self-care sessions active for 24 hours by default, with configurable idle and absolute limits between 5 minutes and 24 hours.
 - Retry all tenant-scoped dead synchronization jobs when full reconciliation runs (#13).
 - Confirm successful QR preview refreshes in the administration portal (#18).
+- Improve real-client self-care compatibility by provisioning 128-bit hexadecimal salts, accepting documented epoch seconds and client epoch milliseconds, and emitting sanitized launch rejection references (#22).
 
 - Fix tenant outbound-proxy provisioning by exposing its server/port settings, defaulting blank proxy values to the resolved SIP endpoint, and including tenant SIP policy in extension change detection (#4).
 - Synchronize Effective Caller ID Name changes to the mapped Tragofone account name while keeping the mapping's current FusionPBX extension number accurate (#6).

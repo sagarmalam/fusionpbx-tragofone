@@ -10,12 +10,13 @@ try {
 	$signature = $compact
 		? (isset($_GET['g']) && !is_array($_GET['g']) ? (string) $_GET['g'] : '')
 		: (isset($_GET['brand_sig']) && !is_array($_GET['brand_sig']) ? (string) $_GET['brand_sig'] : '');
-	if (!preg_match('/^\d{9,12}$/', $time) || !preg_match('/^[a-f0-9]{32}$/', $hash)) { throw new RuntimeException('Invalid signed launch.'); }
-	$timestamp = (int) $time; $now = time();
+	$timestamp = tragofone_selfcare_launch::timestamp_seconds($time);
+	if ($timestamp === null || !preg_match('/^[a-f0-9]{32}$/', $hash)) { throw new RuntimeException('Invalid signed launch.'); }
+	$now = time();
 	if ($timestamp < $now - 120 || $timestamp > $now + 60) { throw new RuntimeException('Signed launch expired.'); }
 	$subject = $sc_repository->subject($scid); if ($subject === null) { throw new RuntimeException('Self-care access is unavailable.'); }
 	$salt = $sc_crypto->decrypt((string) $subject['encrypted_salt']);
-	if (!hash_equals(md5($salt.$time), $hash)) { throw new RuntimeException('Invalid signed launch.'); }
+	if (!tragofone_selfcare_launch::hash_valid($salt, $time, $hash)) { throw new RuntimeException('Invalid signed launch.'); }
 	$config = $sc_repository->global_config();
 	if ($compact) {
 		$brand_version = isset($_GET['v']) && !is_array($_GET['v']) && preg_match('/^\d{1,9}$/', (string) $_GET['v']) ? (int) $_GET['v'] : 0;
@@ -36,6 +37,8 @@ try {
 	$session = $sc_repository->create_session($subject, $theme, (int) ($config['selfcare_session_idle_seconds'] ?? tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS), (int) ($config['selfcare_session_absolute_seconds'] ?? tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS), sc_remote_address(), sc_user_agent());
 	sc_set_cookie($session['cookie']); sc_redirect($compact ? 'selfcare/index.php' : 'index.php');
 } catch (Throwable $error) {
+	$sc_error_reference = tragofone_selfcare_launch::rejection_code($error);
+	error_log('Tragofone self-care launch rejected ['.$sc_error_reference.']');
 	http_response_code(http_response_code() === 429 ? 429 : 403);
 	require __DIR__.'/signed_error.php';
 }

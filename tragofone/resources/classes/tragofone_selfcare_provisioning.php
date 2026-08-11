@@ -10,10 +10,12 @@ final class tragofone_selfcare_provisioning {
 		$subject = $store->selfcare_subject($domain_uuid, $extension_uuid); $rotate = $subject === null || !tragofone_normalizer::boolean($subject['active'] ?? false);
 		if (!$rotate) {
 			$existing_salt = $crypto->decrypt((string) $subject['encrypted_salt']);
-			if (strlen($existing_salt) !== 22) { $store->revoke_selfcare_subject($domain_uuid, $extension_uuid); $rotate = true; }
+			if (!preg_match('/^[a-f0-9]{32}$/', $existing_salt)) { $store->revoke_selfcare_subject($domain_uuid, $extension_uuid); $rotate = true; }
 		}
 		if ($rotate) {
-			$salt = rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
+			// Hex keeps the complete 128-bit random value while avoiding URL-parser
+			// differences around base64url '-' and '_' characters in older clients.
+			$salt = bin2hex(random_bytes(16));
 			$subject = [
 				'subject_uuid' => $subject['subject_uuid'] ?? tragofone_scanner::uuid(), 'domain_uuid' => $domain_uuid,
 				'extension_uuid' => $extension_uuid, 'encrypted_salt' => $crypto->encrypt($salt), 'active' => true,
