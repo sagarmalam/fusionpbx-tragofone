@@ -3,6 +3,10 @@
 final class tragofone_scanner {
 	public function __construct(private readonly tragofone_store $store) {}
 
+	public function reconcile_tenant(array $tenant): int {
+		return $this->store->retry_dead_jobs($tenant['domain_uuid']) + $this->scan_tenant($tenant, null);
+	}
+
 	public function scan_tenant(array $tenant, ?string $since = null): int {
 		$count = 0; $seen_extensions = []; $extension_numbers = []; $domain_uuid = $tenant['domain_uuid']; $destinations = $this->store->destinations($domain_uuid);
 		$default_extension_sync = !array_key_exists('default_extension_sync', $tenant) || $tenant['default_extension_sync'] === null

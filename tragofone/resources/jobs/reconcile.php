@@ -7,6 +7,6 @@ foreach ($argv as $argument) { if (str_starts_with($argument, '--domain=')) { $d
 $scanner = new tragofone_scanner($store); $total = 0;
 foreach ($store->enabled_tenants() as $tenant) {
 	if ($domain !== null && $tenant['domain_uuid'] !== $domain) { continue; }
-	$total += $scanner->scan_tenant($tenant, null);
+	$total += $scanner->reconcile_tenant($tenant);
 }
 echo "Reconciliation queued {$total} repair job(s).\n";

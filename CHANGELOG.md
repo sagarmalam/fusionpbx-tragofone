@@ -23,6 +23,7 @@
 - Standardize link, secondary, primary, table, and form actions across every Tragofone administration page, including full-width mobile form actions.
 - Preserve the source-label casing for administration buttons instead of inheriting variant-specific uppercase transforms (#19).
 - Keep self-care sessions active for 24 hours by default, with configurable idle and absolute limits between 5 minutes and 24 hours.
+- Retry all tenant-scoped dead synchronization jobs when full reconciliation runs (#13).
 - Confirm successful QR preview refreshes in the administration portal (#18).
 
 - Fix tenant outbound-proxy provisioning by exposing its server/port settings, defaulting blank proxy values to the resolved SIP endpoint, and including tenant SIP policy in extension change detection (#4).

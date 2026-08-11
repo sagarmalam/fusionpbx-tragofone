@@ -23,6 +23,7 @@ final class contact_sync_store implements tragofone_store {
 	public function claim_job(string $worker_id): ?array { $job = $this->claimed_job; $this->claimed_job = null; return $job; }
 	public function complete_job(string $job_uuid): void {}
 	public function retry_job(string $job_uuid, int $attempt, int $delay, string $message): void { throw new RuntimeException($message); }
+	public function retry_dead_jobs(string $domain_uuid): int { return 0; }
 	public function fail_job(string $job_uuid, string $message): void { throw new RuntimeException($message); }
 	public function extension_mapping(string $domain_uuid, string $extension_uuid): ?array { return null; }
 	public function extension_mapping_by_extension(string $domain_uuid, string $extension): ?array { return null; }
