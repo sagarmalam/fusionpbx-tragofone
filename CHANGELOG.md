@@ -15,6 +15,7 @@
 - Add Superadmin branding controls, image validation, WCAG contrast checks, live previews, global reprovisioning, interactive mockups, and portal documentation.
 - Keep newly provisioned My Account URLs within Tragofone's 200-character limit by signing a compact subject and global brand-version reference, while retaining legacy launch compatibility.
 - Render live Tragofone raw QR payloads as validated PNG images with PHP GD and FusionPBX's bundled QR library.
+- Load FusionPBX's QR error-correction dependency so raw Tragofone payloads can be previewed and emailed (#15).
 - Treat HTTP 200 application-error envelopes as API failures and reject user creation responses without a positive `usr_id`.
 - Fix clearing a self-care voicemail notification address and prevent intrinsic mobile navigation overflow at 320px.
 - Remove the manual logout control from the Tragofone-embedded self-care header; sessions continue to expire or revoke through the existing security policy.

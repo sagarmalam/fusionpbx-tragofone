@@ -57,29 +57,34 @@ final class tragofone_qr_code {
 	private static function render_payload(string $payload): string {
 		if (!extension_loaded('gd')) { throw new RuntimeException('PHP GD is required to render the Tragofone QR payload.'); }
 		$qr_directory = dirname(__DIR__, 4).'/resources/qr_code';
-		if (!is_file($qr_directory.'/QRCode.php')) { throw new RuntimeException('FusionPBX QR rendering support is unavailable.'); }
+		self::load_renderer($qr_directory);
+		$code = new QRCode(0, QRErrorCorrectLevel::M);
+		$code->addData($payload); $code->make();
+		$modules = (int) $code->getModuleCount(); $quiet = 4; $scale = max(1, intdiv(512, $modules + ($quiet * 2)));
+		$size = ($modules + ($quiet * 2)) * $scale; $canvas = imagecreatetruecolor($size, $size);
+		if ($canvas === false) { throw new RuntimeException('Unable to allocate QR image.'); }
+		$white = imagecolorallocate($canvas, 255, 255, 255); $black = imagecolorallocate($canvas, 0, 0, 0);
+		if ($white === false || $black === false) { imagedestroy($canvas); throw new RuntimeException('Unable to allocate QR colors.'); }
+		imagefill($canvas, 0, 0, $white);
+		for ($row = 0; $row < $modules; $row++) {
+			for ($column = 0; $column < $modules; $column++) {
+				if (!$code->isDark($row, $column)) { continue; }
+				$x = ($column + $quiet) * $scale; $y = ($row + $quiet) * $scale;
+				imagefilledrectangle($canvas, $x, $y, $x + $scale - 1, $y + $scale - 1, $black);
+			}
+		}
+		ob_start(); $written = imagepng($canvas, null, 6); $bytes = ob_get_clean(); imagedestroy($canvas);
+		if (!$written || !is_string($bytes) || $bytes === '') { throw new RuntimeException('Unable to encode QR image.'); }
+		return $bytes;
+	}
+
+	private static function load_renderer(string $qr_directory): void {
+		if (!is_file($qr_directory.'/QRErrorCorrectLevel.php') || !is_file($qr_directory.'/QRCode.php')) { throw new RuntimeException('FusionPBX QR rendering support is unavailable.'); }
 		$previous_include_path = get_include_path();
 		set_include_path($qr_directory.PATH_SEPARATOR.$previous_include_path);
 		try {
+			require_once $qr_directory.'/QRErrorCorrectLevel.php';
 			require_once $qr_directory.'/QRCode.php';
-			$code = new QRCode(0, QRErrorCorrectLevel::M);
-			$code->addData($payload); $code->make();
-			$modules = (int) $code->getModuleCount(); $quiet = 4; $scale = max(1, intdiv(512, $modules + ($quiet * 2)));
-			$size = ($modules + ($quiet * 2)) * $scale; $canvas = imagecreatetruecolor($size, $size);
-			if ($canvas === false) { throw new RuntimeException('Unable to allocate QR image.'); }
-			$white = imagecolorallocate($canvas, 255, 255, 255); $black = imagecolorallocate($canvas, 0, 0, 0);
-			if ($white === false || $black === false) { imagedestroy($canvas); throw new RuntimeException('Unable to allocate QR colors.'); }
-			imagefill($canvas, 0, 0, $white);
-			for ($row = 0; $row < $modules; $row++) {
-				for ($column = 0; $column < $modules; $column++) {
-					if (!$code->isDark($row, $column)) { continue; }
-					$x = ($column + $quiet) * $scale; $y = ($row + $quiet) * $scale;
-					imagefilledrectangle($canvas, $x, $y, $x + $scale - 1, $y + $scale - 1, $black);
-				}
-			}
-			ob_start(); $written = imagepng($canvas, null, 6); $bytes = ob_get_clean(); imagedestroy($canvas);
-			if (!$written || !is_string($bytes) || $bytes === '') { throw new RuntimeException('Unable to encode QR image.'); }
-			return $bytes;
 		} finally {
 			set_include_path($previous_include_path);
 		}
