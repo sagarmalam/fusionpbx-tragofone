@@ -21,6 +21,7 @@
 - Add an authenticated, tenant-isolated self-care QR view so users can enroll another Tragofone device without opening the administrative portal.
 - Standardize link, secondary, primary, table, and form actions across every Tragofone administration page, including full-width mobile form actions.
 - Keep self-care sessions active for 24 hours by default, with configurable idle and absolute limits between 5 minutes and 24 hours.
+- Confirm successful QR preview refreshes in the administration portal (#18).
 
 - Fix tenant outbound-proxy provisioning by exposing its server/port settings, defaulting blank proxy values to the resolved SIP endpoint, and including tenant SIP policy in extension change detection (#4).
 - Synchronize Effective Caller ID Name changes to the mapped Tragofone account name while keeping the mapping's current FusionPBX extension number accurate (#6).

@@ -98,4 +98,9 @@ final class PackageLayoutTest extends TestCase {
 		self::assertStringContainsString("method = 'direct'", $page);
 		self::assertStringNotContainsString('v_email_queue_attachments', $page);
 	}
+
+	public function test_qr_preview_reports_success_after_refresh(): void {
+		$page = file_get_contents(dirname(__DIR__, 2).'/tragofone/qr_code.php');
+		self::assertStringContainsString("\$message = 'The QR code was refreshed successfully.';", $page);
+	}
 }
