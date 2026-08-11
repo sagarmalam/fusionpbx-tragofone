@@ -50,15 +50,16 @@ final class tragofone_selfcare_repository {
 		$idle_seconds = min(self::MAX_SESSION_SECONDS, max(self::MIN_SESSION_SECONDS, $idle_seconds));
 		$absolute_seconds = min(self::MAX_SESSION_SECONDS, max($idle_seconds, $absolute_seconds));
 		$session_uuid = tragofone_scanner::uuid(); $secret = self::random_token(); $csrf = hash_hmac('sha256', 'csrf', $secret);
-		$record = [
+		$parameters = [
 			'session_uuid'=>$session_uuid, 'subject_uuid'=>$subject['subject_uuid'], 'token_hash'=>hash('sha256', $secret),
 			'csrf_hash'=>hash('sha256', $csrf), 'theme_payload'=>json_encode($theme, JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR),
 			'ip_hash'=>$this->crypto->fingerprint('selfcare-session-ip', $remote_address),
 			'user_agent_hash'=>$this->crypto->fingerprint('selfcare-session-agent', $user_agent),
-			'created_at'=>gmdate('c'), 'last_seen_at'=>gmdate('c'), 'idle_expires_at'=>gmdate('c', time()+$idle_seconds),
-			'absolute_expires_at'=>gmdate('c', time()+$absolute_seconds),
+			'idle_seconds'=>$idle_seconds, 'absolute_seconds'=>$absolute_seconds,
 		];
-		$this->upsert('v_tragofone_selfcare_sessions', 'session_uuid', $record);
+		$sql = "insert into v_tragofone_selfcare_sessions (session_uuid,subject_uuid,token_hash,csrf_hash,theme_payload,ip_hash,user_agent_hash,created_at,last_seen_at,idle_expires_at,absolute_expires_at) "
+			."values (:session_uuid,:subject_uuid,:token_hash,:csrf_hash,:theme_payload,:ip_hash,:user_agent_hash,now(),now(),now() + (:idle_seconds || ' seconds')::interval,now() + (:absolute_seconds || ' seconds')::interval)";
+		$this->execute($sql, $parameters);
 		return ['cookie'=>$session_uuid.'.'.$secret, 'csrf'=>$csrf];
 	}
 
