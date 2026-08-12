@@ -15,7 +15,8 @@ final class SelfCareThemeTest extends TestCase {
 		self::assertSame($subject,$query['s']);self::assertSame('2',$query['v']);self::assertSame($salt,$query['tragofone_salt']);
 		self::assertTrue(tragofone_selfcare_theme::verify_compact($subject,$salt,2,$query['g']));
 		self::assertTrue(tragofone_selfcare_theme::verify_current_compact($subject,$salt,2,2,$query['g']));
-		self::assertFalse(tragofone_selfcare_theme::verify_current_compact($subject,$salt,2,3,$query['g']));
+		self::assertTrue(tragofone_selfcare_theme::verify_current_compact($subject,$salt,2,3,$query['g']));
+		self::assertFalse(tragofone_selfcare_theme::verify_current_compact($subject,$salt,2,1,$query['g']));
 		self::assertFalse(tragofone_selfcare_theme::verify_compact($subject,$salt,3,$query['g']));
 		self::assertLessThanOrEqual(200,strlen($url));self::assertStringContainsString('/app/tragofone/sc.php?',$url);
 	}

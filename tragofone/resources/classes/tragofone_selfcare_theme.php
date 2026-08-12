@@ -85,7 +85,13 @@ final class tragofone_selfcare_theme {
 	}
 
 	public static function verify_current_compact(string $subject_uuid, string $salt, int $brand_version, int $current_brand_version, string $signature): bool {
-		return $brand_version === $current_brand_version && self::verify_compact($subject_uuid, $salt, $brand_version, $signature);
+		// A branding rollout is asynchronous. A client can legitimately retain
+		// the preceding Account URL after the global theme has advanced. Compact
+		// URLs contain no theme values; they resolve the current trusted theme on
+		// launch, so any authentic non-future version remains safe. Salt rotation
+		// and subject revocation remain the explicit URL-revocation boundaries.
+		return $brand_version >= 1 && $brand_version <= max(1, $current_brand_version)
+			&& self::verify_compact($subject_uuid, $salt, $brand_version, $signature);
 	}
 
 	public static function sign(string $subject_uuid, string $salt, array $payload): string {
