@@ -20,17 +20,22 @@ try {
 	$config = $sc_repository->global_config();
 	if ($compact) {
 		$brand_version = isset($_GET['v']) && !is_array($_GET['v']) && preg_match('/^\d{1,9}$/', (string) $_GET['v']) ? (int) $_GET['v'] : 0;
-		if ($brand_version < 1 || !tragofone_selfcare_theme::verify_current_compact($scid, $salt, $brand_version, (int) $subject['brand_version'], $signature)) { throw new RuntimeException('Invalid branding signature.'); }
+		$current_brand_version = max(1, (int) ($config['selfcare_brand_version'] ?? 1));
+		if (!tragofone_selfcare_theme::verify_current_compact($scid, $salt, $brand_version, $current_brand_version, $signature)) { throw new RuntimeException('Invalid branding signature.'); }
 		$theme_config = $config;
 		$theme_config['selfcare_brand_logo_url'] = !empty($config['selfcare_brand_logo_base64'])
-			? rtrim((string) $config['selfcare_base_url'], '/').'/logo.php?v='.$brand_version : '';
+			? rtrim((string) $config['selfcare_base_url'], '/').'/logo.php?v='.$current_brand_version : '';
 		$theme = tragofone_selfcare_theme::from_config($theme_config);
 	} else {
 		$payload = tragofone_selfcare_theme::signed_payload($_GET);
 		if (!tragofone_selfcare_theme::verify($scid, $salt, $payload, $signature)) { throw new RuntimeException('Invalid branding signature.'); }
 		$theme = tragofone_selfcare_theme::launch_theme($_GET);
 	}
-	if ((int) $theme['brand_v'] !== (int) $subject['brand_version']) { throw new RuntimeException('Account URL is no longer current.'); }
+	// Legacy URLs carry their complete signed theme and therefore remain tied
+	// to the provisioned subject version. Compact URLs carry only an authentic
+	// reference and always render the current global theme, allowing a stale
+	// desktop cache to survive the asynchronous branding rollout.
+	if (!$compact && (int) $theme['brand_v'] !== (int) $subject['brand_version']) { throw new RuntimeException('Account URL is no longer current.'); }
 	if (!tragofone_selfcare_policy::enabled(tragofone_selfcare_policy::global($config), $subject['domain_selfcare_policy'] ?? 'inherit', $subject['user_selfcare_policy'] ?? 'inherit')) { throw new RuntimeException('Self-care is disabled.'); }
 	tragofone_selfcare_theme::validate_logo_url((string) $theme['brand_logo'], (string) $config['selfcare_base_url']);
 	if (!$sc_repository->consume_assertion($scid, $time, $hash)) { throw new RuntimeException('Signed launch was already used.'); }
