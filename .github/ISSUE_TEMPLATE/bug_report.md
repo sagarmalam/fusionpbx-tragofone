@@ -1,6 +1,10 @@
 ---
 name: Bug report
 about: Report companion behavior that needs correction
+title: ''
+labels: ''
+assignees: ''
+
 ---
 
 ## Environment
