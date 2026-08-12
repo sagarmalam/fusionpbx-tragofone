@@ -37,6 +37,20 @@ final class ConfigAndSecurityTest extends TestCase {
 		self::assertTrue(tragofone_selfcare_policy::enabled('no', 'yes', 'inherit'));
 		self::assertTrue(tragofone_selfcare_policy::enabled('no', 'no', 'yes'));
 	}
+
+	public function test_theme_restore_and_partial_posts_preserve_selfcare_access(): void {
+		$current=['selfcare_policy'=>'yes','selfcare_enabled'=>true,'selfcare_base_url'=>'https://pbx.test/app/tragofone/selfcare'];
+		$partial=tragofone_selfcare_settings::access($current,['selfcare_light_button'=>'2C4FDB']);
+		self::assertSame('yes',$partial['policy']);self::assertTrue($partial['enabled']);self::assertSame($current['selfcare_base_url'],$partial['base_url']);
+		$restore=tragofone_selfcare_settings::access($current,['selfcare_policy'=>'no','selfcare_base_url'=>''],true);
+		self::assertSame('yes',$restore['policy']);self::assertTrue($restore['enabled']);self::assertSame($current['selfcare_base_url'],$restore['base_url']);
+	}
+
+	public function test_worker_recomputes_selfcare_from_current_policy_not_stale_boolean(): void {
+		$tenant=['selfcare_global_policy'=>'yes','selfcare_policy'=>'inherit'];
+		self::assertTrue(tragofone_selfcare_settings::effective_for_job($tenant,['selfcare_enabled'=>false,'selfcare_policy'=>'inherit']));
+		self::assertFalse(tragofone_selfcare_settings::effective_for_job($tenant,['selfcare_enabled'=>true,'selfcare_policy'=>'no']));
+	}
 	public function test_selfcare_session_defaults_to_twenty_four_hours(): void {
 		self::assertSame(86400, tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS);
 		self::assertSame(86400, tragofone_selfcare_repository::MAX_SESSION_SECONDS);

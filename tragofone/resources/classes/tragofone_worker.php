@@ -83,7 +83,10 @@ final class tragofone_worker {
 		if ($application_password === null) {
 			$application_password = tragofone_normalizer::application_password((string) ($extension['password'] ?? ''));
 		}
-		$tenant['selfcare_enabled'] = tragofone_normalizer::boolean($payload['selfcare_enabled'] ?? $tenant['selfcare_enabled'] ?? false);
+		// Branding jobs can wait behind other tenants. Resolve access again at
+		// execution time so a stale queued payload cannot disable My Account
+		// after an administrator has corrected the current policy.
+		$tenant['selfcare_enabled'] = tragofone_selfcare_settings::effective_for_job($tenant, $payload);
 		$user_update = [
 			'user_id' => (int) $mapping['tragofone_user_id'],
 			'usr_password' => $application_password,

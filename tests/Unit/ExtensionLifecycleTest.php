@@ -327,7 +327,7 @@ final class ExtensionLifecycleTest extends TestCase {
 
 	public function test_user_policy_can_disable_selfcare_without_disabling_sip_provisioning(): void {
 		$store=new extension_lifecycle_store();$store->tenant_config=['selfcare_enabled'=>true,'selfcare_base_url'=>'https://pbx.example/app/tragofone/selfcare',...tragofone_selfcare_theme::DEFAULTS];
-		$store->claimed_job=['job_uuid'=>'selfcare-no','domain_uuid'=>'domain-1','entity_type'=>'extension','entity_uuid'=>'ext-1','operation'=>'create_user','payload'=>json_encode(['extension'=>$this->extension(),'dids'=>[],'selfcare_enabled'=>false],JSON_THROW_ON_ERROR),'record_hash'=>'no-selfcare','attempt_count'=>0];
+		$store->claimed_job=['job_uuid'=>'selfcare-no','domain_uuid'=>'domain-1','entity_type'=>'extension','entity_uuid'=>'ext-1','operation'=>'create_user','payload'=>json_encode(['extension'=>$this->extension(),'dids'=>[],'selfcare_enabled'=>false,'selfcare_policy'=>'no'],JSON_THROW_ON_ERROR),'record_hash'=>'no-selfcare','attempt_count'=>0];
 		$transport=new extension_lifecycle_transport();$transport->responses=[['status'=>200,'headers'=>[],'body'=>'{"access_token":"a"}'],['status'=>200,'headers'=>[],'body'=>'{"data":{"usr_id":9,"cust_id":1}}'],['status'=>200,'headers'=>[],'body'=>'{"status":"SUCCESS"}']];
 		$factory=static function()use($transport):tragofone_client{$client=new tragofone_client('https://trago.test',$transport);$client->customer_login('company','password');return $client;};
 		self::assertTrue((new tragofone_worker($store,$factory,new tragofone_crypto(str_repeat('k',32))))->run_once('worker'));
