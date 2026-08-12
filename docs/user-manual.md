@@ -279,7 +279,7 @@ For operational failures, see [Troubleshooting](troubleshooting.md). For securit
 
 ## Phase 2 self-care
 
-Only a Superadmin can configure branding. Open **Global → Self-Care Portal**, enter the public HTTPS portal directory, upload an optional logo, set both theme palettes, choose forwarding/session policy, and save. Branding remains identical for every company.
+Only a Superadmin can configure branding. Open **Global → Self-Care Portal**. Set the global policy and public HTTPS portal directory, then select **Save Self-Care Access**. Upload an optional logo, set both theme palettes and choose forwarding/session policy, then select **Save Global Defaults**. Branding remains identical for every company. Branding, theme-restore, and salt-rotation actions preserve the access policy and portal URL; only **Save Self-Care Access** can change them.
 
 Self-care access has **Inherit**, **Yes**, and **No** at global, domain, and user levels. The default is **Inherit**. User overrides domain, domain overrides global, and an all-Inherit chain resolves to No. Configure the domain value in **Tenant Settings** and individual values in **Extension Synchronization**. This policy is independent of the SIP synchronization checkbox, although an excluded SIP user cannot receive self-care.
 

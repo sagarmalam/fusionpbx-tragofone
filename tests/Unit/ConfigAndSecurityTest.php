@@ -38,12 +38,14 @@ final class ConfigAndSecurityTest extends TestCase {
 		self::assertTrue(tragofone_selfcare_policy::enabled('no', 'no', 'yes'));
 	}
 
-	public function test_theme_restore_and_partial_posts_preserve_selfcare_access(): void {
+	public function test_theme_restore_partial_and_stale_global_posts_preserve_selfcare_access(): void {
 		$current=['selfcare_policy'=>'yes','selfcare_enabled'=>true,'selfcare_base_url'=>'https://pbx.test/app/tragofone/selfcare'];
 		$partial=tragofone_selfcare_settings::access($current,['selfcare_light_button'=>'2C4FDB']);
 		self::assertSame('yes',$partial['policy']);self::assertTrue($partial['enabled']);self::assertSame($current['selfcare_base_url'],$partial['base_url']);
 		$restore=tragofone_selfcare_settings::access($current,['selfcare_policy'=>'no','selfcare_base_url'=>''],true);
 		self::assertSame('yes',$restore['policy']);self::assertTrue($restore['enabled']);self::assertSame($current['selfcare_base_url'],$restore['base_url']);
+		$stale_global_save=tragofone_selfcare_settings::access($current,['selfcare_policy'=>'inherit','selfcare_base_url'=>''],true);
+		self::assertSame('yes',$stale_global_save['policy']);self::assertTrue($stale_global_save['enabled']);self::assertSame($current['selfcare_base_url'],$stale_global_save['base_url']);
 	}
 
 	public function test_worker_recomputes_selfcare_from_current_policy_not_stale_boolean(): void {

@@ -50,7 +50,9 @@ final class PackageLayoutTest extends TestCase {
 	public function test_global_selfcare_controls_warn_and_support_salt_rotation(): void {
 		$page = file_get_contents(dirname(__DIR__, 2).'/tragofone/global_settings.php');
 		self::assertStringContainsString('Rotate Self-Care Salts', $page);
-		self::assertStringContainsString('Saving may update the Account URL for every synchronized Tragofone user', $page);
+		self::assertStringContainsString('Save Self-Care Access', $page);
+		self::assertStringContainsString('Branding saves cannot enable or disable access', $page);
+		self::assertStringContainsString('Self-care access and its public URL are changed only by Save Self-Care Access', $page);
 		self::assertStringContainsString('selfcare.salts.rotate', $page);
 	}
 

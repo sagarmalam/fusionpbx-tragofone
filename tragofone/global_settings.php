@@ -13,11 +13,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	try {
 		$restore = isset($_POST['restore_selfcare_defaults']);
 		$rotate_salts = isset($_POST['rotate_selfcare_salts']);
-		$access = tragofone_selfcare_settings::access($config, $_POST, $restore);
+		$save_access = isset($_POST['save_selfcare_access']);
+		$general_save = !$restore && !$rotate_salts && !$save_access;
+		// Access is a security boundary and has its own explicit save action.
+		// Branding, global-default, restore, and rotation submissions may come
+		// from an older open browser tab, so they must never change it.
+		$access = tragofone_selfcare_settings::access($config, $_POST, !$save_access);
 		$selfcare_policy = $access['policy'];
-		$base_url = tragofone_url_validator::validate(trim((string) ($_POST['base_url'] ?? '')));
-		$customer_username = trim((string) ($_POST['customer_username'] ?? ''));
-		if ($customer_username !== '' && empty($_POST['customer_password']) && empty($config['encrypted_customer_password'])) {
+		$base_url = tragofone_url_validator::validate(trim((string) ($general_save ? ($_POST['base_url'] ?? '') : ($config['base_url'] ?? ''))));
+		$customer_username = trim((string) ($general_save ? ($_POST['customer_username'] ?? '') : ($config['customer_username'] ?? '')));
+		if ($customer_username !== '' && (!$general_save || empty($_POST['customer_password'])) && empty($config['encrypted_customer_password'])) {
 			throw new InvalidArgumentException('Global company-admin password is required when a global username is configured.');
 		}
 		$selfcare_enabled = $access['enabled'];
@@ -28,19 +33,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			$parts = parse_url($selfcare_base_url);
 			if (!empty($parts['query']) || !empty($parts['fragment'])) { throw new InvalidArgumentException('Self-care base URL cannot contain a query string or fragment.'); }
 		}
-		$theme_input = $restore ? tragofone_selfcare_theme::DEFAULTS : [
+		$theme_input = $restore ? tragofone_selfcare_theme::DEFAULTS : (!$general_save ? $config : [
 			'selfcare_brand_name'=>$_POST['selfcare_brand_name'] ?? '',
 			'selfcare_light_background'=>$_POST['selfcare_light_background'] ?? '', 'selfcare_light_foreground'=>$_POST['selfcare_light_foreground'] ?? '',
 			'selfcare_light_button'=>$_POST['selfcare_light_button'] ?? '', 'selfcare_light_button_foreground'=>$_POST['selfcare_light_button_foreground'] ?? '',
 			'selfcare_dark_background'=>$_POST['selfcare_dark_background'] ?? '', 'selfcare_dark_foreground'=>$_POST['selfcare_dark_foreground'] ?? '',
 			'selfcare_dark_button'=>$_POST['selfcare_dark_button'] ?? '', 'selfcare_dark_button_foreground'=>$_POST['selfcare_dark_button_foreground'] ?? '',
-		];
+		]);
 		$theme = tragofone_selfcare_theme::from_config($theme_input);
-		$logo_base64 = $restore || isset($_POST['remove_selfcare_logo']) ? null : ($config['selfcare_brand_logo_base64'] ?? null);
-		$logo_mime = $restore || isset($_POST['remove_selfcare_logo']) ? null : ($config['selfcare_brand_logo_mime'] ?? null);
+		$logo_base64 = $restore || ($general_save && isset($_POST['remove_selfcare_logo'])) ? null : ($config['selfcare_brand_logo_base64'] ?? null);
+		$logo_mime = $restore || ($general_save && isset($_POST['remove_selfcare_logo'])) ? null : ($config['selfcare_brand_logo_mime'] ?? null);
 		$logo_upload_error = (int) ($_FILES['selfcare_brand_logo']['error'] ?? UPLOAD_ERR_NO_FILE);
-		if ($logo_upload_error !== UPLOAD_ERR_NO_FILE && $logo_upload_error !== UPLOAD_ERR_OK) { throw new InvalidArgumentException('Brand logo upload failed. Check the PHP upload size limits and try again.'); }
-		if (!empty($_FILES['selfcare_brand_logo']['tmp_name']) && $logo_upload_error === UPLOAD_ERR_OK) {
+		if ($general_save && $logo_upload_error !== UPLOAD_ERR_NO_FILE && $logo_upload_error !== UPLOAD_ERR_OK) { throw new InvalidArgumentException('Brand logo upload failed. Check the PHP upload size limits and try again.'); }
+		if ($general_save && !empty($_FILES['selfcare_brand_logo']['tmp_name']) && $logo_upload_error === UPLOAD_ERR_OK) {
 			if ((int) $_FILES['selfcare_brand_logo']['size'] > 262144) { throw new InvalidArgumentException('Brand logo must be 256 KB or smaller.'); }
 			$finfo = new finfo(FILEINFO_MIME_TYPE); $logo_mime = $finfo->file($_FILES['selfcare_brand_logo']['tmp_name']);
 			if (!in_array($logo_mime, ['image/png','image/jpeg','image/webp'], true)) { throw new InvalidArgumentException('Brand logo must be PNG, JPEG, or WebP.'); }
@@ -50,12 +55,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			if ($data === false) { throw new RuntimeException('Unable to read uploaded brand logo.'); }
 			$logo_base64 = base64_encode($data);
 		}
-		$prefixes = trim((string) ($_POST['selfcare_external_prefixes'] ?? ($config['selfcare_external_prefixes'] ?? '')));
+		$prefixes = trim((string) ($general_save ? ($_POST['selfcare_external_prefixes'] ?? '') : ($config['selfcare_external_prefixes'] ?? '')));
 		foreach (array_filter(array_map('trim', explode(',', $prefixes))) as $prefix) {
 			if (!preg_match('/^\+?\d{1,15}$/', $prefix)) { throw new InvalidArgumentException('External forwarding prefixes must be comma-separated digits with an optional leading +.'); }
 		}
-		$idle = (int) ($_POST['selfcare_session_idle_seconds'] ?? ($config['selfcare_session_idle_seconds'] ?? tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS));
-		$absolute = (int) ($_POST['selfcare_session_absolute_seconds'] ?? ($config['selfcare_session_absolute_seconds'] ?? tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS));
+		$idle = (int) ($general_save ? ($_POST['selfcare_session_idle_seconds'] ?? tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS) : ($config['selfcare_session_idle_seconds'] ?? tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS));
+		$absolute = (int) ($general_save ? ($_POST['selfcare_session_absolute_seconds'] ?? tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS) : ($config['selfcare_session_absolute_seconds'] ?? tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS));
 		if ($idle < tragofone_selfcare_repository::MIN_SESSION_SECONDS || $idle > tragofone_selfcare_repository::MAX_SESSION_SECONDS || $absolute < $idle || $absolute > tragofone_selfcare_repository::MAX_SESSION_SECONDS) { throw new InvalidArgumentException('Session idle and absolute timeouts must be between 5 minutes and 24 hours; absolute timeout cannot be shorter than idle timeout.'); }
 
 		$brand_fields = ['selfcare_enabled','selfcare_policy','selfcare_base_url','selfcare_brand_name','selfcare_brand_logo_base64','selfcare_brand_logo_mime','selfcare_light_background','selfcare_light_foreground','selfcare_light_button','selfcare_light_button_foreground','selfcare_dark_background','selfcare_dark_foreground','selfcare_dark_button','selfcare_dark_button_foreground'];
@@ -75,21 +80,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$brand_changed = $old_brand_hash !== tragofone_normalizer::hash($new_brand);
 		$record = [
 			'config_uuid'=>$config['config_uuid'] ?? uuid(), 'base_url'=>$base_url, 'customer_username'=>$customer_username,
-			'verify_tls'=>'true', 'sip_port'=>(int) ($_POST['sip_port'] ?? 5061), 'sip_protocol'=>$_POST['sip_protocol'] ?? 'tls',
-			'voicemail_code'=>trim((string) ($_POST['voicemail_code'] ?? '*97')), ...$new_brand,
+			'verify_tls'=>'true', 'sip_port'=>(int) ($general_save ? ($_POST['sip_port'] ?? 5061) : ($config['sip_port'] ?? 5061)),
+			'sip_protocol'=>$general_save ? ($_POST['sip_protocol'] ?? 'tls') : ($config['sip_protocol'] ?? 'tls'),
+			'voicemail_code'=>trim((string) ($general_save ? ($_POST['voicemail_code'] ?? '*97') : ($config['voicemail_code'] ?? '*97'))), ...$new_brand,
 			'selfcare_brand_version'=>max(1, (int) ($config['selfcare_brand_version'] ?? 1) + ($brand_changed ? 1 : 0)),
-			'selfcare_external_forwarding'=>tragofone_normalizer::boolean($_POST['selfcare_external_forwarding'] ?? ($config['selfcare_external_forwarding'] ?? false)) ? 'true' : 'false',
+			'selfcare_external_forwarding'=>tragofone_normalizer::boolean($general_save ? ($_POST['selfcare_external_forwarding'] ?? false) : ($config['selfcare_external_forwarding'] ?? false)) ? 'true' : 'false',
 			'selfcare_external_prefixes'=>$prefixes, 'selfcare_session_idle_seconds'=>$idle, 'selfcare_session_absolute_seconds'=>$absolute,
 			'insert_date'=>$config['insert_date'] ?? date('c'), 'insert_user'=>$config['insert_user'] ?? $_SESSION['user_uuid'],
 			'update_date'=>date('c'), 'update_user'=>$_SESSION['user_uuid'],
 		];
-		if (!empty($_POST['customer_password'])) { $record['encrypted_customer_password'] = tragofone_crypto::from_environment()->encrypt($_POST['customer_password']); }
+		if ($general_save && !empty($_POST['customer_password'])) { $record['encrypted_customer_password'] = tragofone_crypto::from_environment()->encrypt($_POST['customer_password']); }
 		$columns = array_keys($record); $updates = array_values(array_diff($columns, ['config_uuid','insert_date','insert_user']));
 		$sql = 'insert into v_tragofone_global_config ('.implode(', ', $columns).') values (:'.implode(', :', $columns).') on conflict (config_uuid) do update set '.implode(', ', array_map(static fn($column)=>$column.' = excluded.'.$column, $updates));
 		if ($database->execute($sql, $record) === false) { throw new RuntimeException('Unable to save global settings.'); }
 		$database->execute('insert into v_tragofone_audit (audit_uuid,action,entity_type,entity_uuid,summary,insert_date,insert_user) values (:audit_uuid,:action,\'global_config\',:entity_uuid,:summary,now(),:insert_user)', [
-			'audit_uuid'=>uuid(), 'action'=>$rotate_salts ? 'selfcare.salts.rotate' : 'selfcare.global.update',
-			'entity_uuid'=>$record['config_uuid'], 'summary'=>$rotate_salts ? 'Global self-care settings saved and all self-care salts rotated.' : 'Global Tragofone and self-care settings updated.',
+			'audit_uuid'=>uuid(), 'action'=>$rotate_salts ? 'selfcare.salts.rotate' : ($restore ? 'selfcare.theme.restore' : ($save_access ? 'selfcare.access.update' : 'selfcare.global.update')),
+			'entity_uuid'=>$record['config_uuid'], 'summary'=>$rotate_salts ? 'All self-care salts rotated.' : ($restore ? 'Global self-care theme defaults restored.' : ($save_access ? 'Global self-care access settings updated.' : 'Global Tragofone defaults and self-care branding updated.')),
 			'insert_user'=>$_SESSION['user_uuid'],
 		]);
 		$policy_changed = $old_brand['selfcare_policy'] !== $selfcare_policy;
@@ -148,8 +154,9 @@ $tragofone_subtitle = 'Shared API defaults and globally branded self-care contro
 		<section class="tg-card wide"><div class="tg-card-title"><span class="tg-icon">◐</span>Self-Care Portal</div><div class="tg-card-body">
 			<div class="tg-guide"><strong>Global branding</strong>These values are signed into every eligible Tragofone Account URL. Saving branding changes queues reprovisioning across enabled companies.</div>
 			<?php $global_selfcare_policy=isset($config['selfcare_policy'])?tragofone_selfcare_policy::normalize($config['selfcare_policy']):tragofone_selfcare_policy::global($config); ?>
-			<div class="tg-field"><div class="tg-label">Self-care access<span class="tg-help">Inherit uses the secure system default: No.</span></div><select class="formfld" name="selfcare_policy"><?php foreach(['inherit'=>'Inherit','yes'=>'Yes','no'=>'No'] as $value=>$label){?><option value="<?= $value ?>" <?= $global_selfcare_policy===$value?'selected':'' ?>><?= $label ?></option><?php }?></select></div>
+			<div class="tg-field"><div class="tg-label">Self-care access<span class="tg-help">Inherit uses the secure system default: No. Access changes apply only with the dedicated button below.</span></div><select class="formfld" name="selfcare_policy"><?php foreach(['inherit'=>'Inherit','yes'=>'Yes','no'=>'No'] as $value=>$label){?><option value="<?= $value ?>" <?= $global_selfcare_policy===$value?'selected':'' ?>><?= $label ?></option><?php }?></select></div>
 			<div class="tg-field"><div class="tg-label">Public portal base URL<span class="tg-help">Normally https://pbx.example/app/tragofone/selfcare</span></div><input class="formfld" name="selfcare_base_url" value="<?= escape($config['selfcare_base_url'] ?? '') ?>" placeholder="https://pbx.example/app/tragofone/selfcare"></div>
+			<div class="tg-field"><div></div><div><button class="btn btn-primary" type="submit" name="save_selfcare_access" value="true" onclick="return confirm('Apply this global self-care access policy and portal URL? Eligible Tragofone users will be reprovisioned.')">Save Self-Care Access</button><span class="tg-help">Required for changing access or the public portal URL. Branding saves cannot enable or disable access.</span></div></div>
 			<div class="tg-field"><div class="tg-label">Portal name</div><input class="formfld" maxlength="40" name="selfcare_brand_name" value="<?= escape($config['selfcare_brand_name'] ?? 'Tragofone') ?>"></div>
 			<div class="tg-field"><div class="tg-label">Brand logo<span class="tg-help">PNG, JPEG, or WebP; maximum 256 KB and 512 × 512.</span></div><div><input type="file" name="selfcare_brand_logo" accept="image/png,image/jpeg,image/webp"><?php if (!empty($config['selfcare_brand_logo_base64'])) { ?><label style="display:block;margin-top:8px"><input type="checkbox" name="remove_selfcare_logo" value="true"> Remove stored logo</label><?php } ?></div></div>
 			<div class="tg-theme-grid"><?php foreach (['light'=>'Light theme','dark'=>'Dark theme'] as $mode=>$label) { ?><div><b><?= $label ?></b><?php foreach (['background'=>'Background','foreground'=>'Text','button'=>'Button','button_foreground'=>'Button text'] as $field=>$field_label) { $name='selfcare_'.$mode.'_'.$field; $value=$config[$name] ?? tragofone_selfcare_theme::DEFAULTS[$name]; ?><div class="tg-field" style="grid-template-columns:140px 1fr;margin-top:10px"><div class="tg-label"><?= $field_label ?></div><div class="tg-color"><input class="formfld tg-color-text" data-theme="<?= $mode ?>" name="<?= $name ?>" value="<?= escape($value) ?>" maxlength="7"><input type="color" data-color-for="<?= $name ?>" value="#<?= escape(ltrim($value,'#')) ?>"></div></div><?php } ?></div><?php } ?></div>
@@ -159,7 +166,7 @@ $tragofone_subtitle = 'Shared API defaults and globally branded self-care contro
 		<section class="tg-card"><div class="tg-card-title"><span class="tg-icon">◷</span>Session Policy</div><div class="tg-card-body"><div class="tg-field"><div class="tg-label">Idle timeout<span class="tg-help">Seconds; 300–86400. Default: 86400 (24 hours).</span></div><input class="formfld" type="number" min="300" max="86400" name="selfcare_session_idle_seconds" value="<?= escape($config['selfcare_session_idle_seconds'] ?? tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS) ?>"></div><div class="tg-field"><div class="tg-label">Absolute timeout<span class="tg-help">Seconds; up to 86400. Default: 24 hours.</span></div><input class="formfld" type="number" min="300" max="86400" name="selfcare_session_absolute_seconds" value="<?= escape($config['selfcare_session_absolute_seconds'] ?? tragofone_selfcare_repository::DEFAULT_SESSION_SECONDS) ?>"></div></div></section>
 		<section class="tg-card wide"><div class="tg-card-title"><span class="tg-icon">#</span>Generated Account URL</div><div class="tg-card-body"><div class="tg-url-example"><?= escape(preg_replace('#/selfcare$#', '/sc.php', rtrim((string) ($config['selfcare_base_url'] ?? 'https://pbx.example/app/tragofone/selfcare'), '/')).'?s={user}&v={brand-version}&g={signature}&tragofone_salt={user-salt}') ?></div><span class="tg-help">The compact signed URL stays within Tragofone's 200-character limit. The signed brand version resolves to the globally configured theme.</span></div></section>
 	</div>
-	<div class="tg-footer"><a class="btn btn-default" href="index.php">Cancel</a><button class="btn btn-default" type="submit" name="rotate_selfcare_salts" value="true" onclick="return confirm('Rotate every self-care salt? Existing sessions will end and all eligible users will receive a new Account URL.')">Rotate Self-Care Salts</button><button class="btn btn-default" type="submit" name="restore_selfcare_defaults" value="true" onclick="return confirm('Restore only the global light and dark theme defaults? Self-care access, URL, forwarding, and session settings will be preserved.')">Restore Theme Defaults</button><button class="btn btn-primary" type="submit" onclick="return confirm('Saving may update the Account URL for every synchronized Tragofone user. Continue?')">Save Global Defaults</button></div>
+	<div class="tg-footer"><a class="btn btn-default" href="index.php">Cancel</a><button class="btn btn-default" type="submit" name="rotate_selfcare_salts" value="true" onclick="return confirm('Rotate every self-care salt? Existing sessions will end and all eligible users will receive a new Account URL. Other settings will be preserved.')">Rotate Self-Care Salts</button><button class="btn btn-default" type="submit" name="restore_selfcare_defaults" value="true" onclick="return confirm('Restore only the global light and dark theme defaults? Self-care access, URL, forwarding, session, and API settings will be preserved.')">Restore Theme Defaults</button><button class="btn btn-primary" type="submit" onclick="return confirm('Save API defaults, branding, forwarding, and session settings? Self-care access and its public URL are changed only by Save Self-Care Access.')">Save Global Defaults</button></div>
 	</form>
 </div>
 <script>
