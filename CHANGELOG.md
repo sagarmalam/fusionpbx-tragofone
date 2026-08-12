@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 - Release candidate
 
-- Add the Phase 2 signed self-care portal with global light/dark branding embedded in each Tragofone Account URL.
+- Add the signed self-care portal with global light/dark branding referenced by each Tragofone Account URL.
 - Add per-extension one-time launch subjects, encrypted salts, server-side sessions, replay protection, rate limiting, CSRF protection, and session revocation.
 - Add responsive account summary, DND and forwarding, FusionPBX Visual Voicemail, voicemail email, and PIN self-care.
 - Add Inherit/Yes/No self-care access controls at global, domain, and individual-user levels.
@@ -39,7 +39,7 @@
 - Add FusionPBX 5.5-compatible installation detection and installer preflight checks, and honor custom PHP binary, FusionPBX root, runtime user, and runtime group values in generated systemd services.
 - Declare runtime PHP extensions in Composer metadata and syntax-check the installer in CI.
 
-## 0.1.0 - Unreleased
+## 0.1.0 - 2026-07-22
 
 - Bootstrap native FusionPBX companion application.
 - Add tenant configuration, mappings, snapshots, jobs, and audit schema.

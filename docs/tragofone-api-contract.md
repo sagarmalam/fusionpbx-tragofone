@@ -48,8 +48,8 @@ QR data is fetched only after an authenticated, domain-scoped, CSRF-protected ad
 
 ## My Account configuration
 
-Phase 2 uses the existing `POST /api/customer/user/update-configurations` endpoint with `myaccount_status=TRUE` and a signed FusionPBX `myaccount_url`.
+Self-care uses the existing `POST /api/customer/user/update-configurations` endpoint with `myaccount_status=TRUE` and a signed FusionPBX `myaccount_url`.
 
 The newly configured URL is a compact `/app/tragofone/sc.php` link containing the opaque subject, global brand version, a 192-bit companion HMAC, and `tragofone_salt`; the complete URL is rejected locally if it exceeds the API's 200-character limit. On mobile and desktop launch, Tragofone removes the salt and appends `tragofone_hash=MD5(salt + epoch)` and `tragofone_time=<epoch>`. No new Tragofone endpoint or server change is required. The PBX validates the compact signature before loading the matching global theme.
 
-The live API sometimes reports application-level `ERROR`, `FAILED`, or `FAILURE` inside an HTTP 200 response. The client treats those envelopes as failed requests, so an invalid profile or rejected configuration cannot be recorded as a successful synchronization.
+The live API sometimes reports application-level `ERROR`, `FAILED`, or `FAILURE` inside an HTTP 200 response. The client treats those envelopes as failed requests, so an invalid profile or rejected configuration cannot be recorded as a successful synchronization. Authentic older compact URLs remain accepted during asynchronous branding rollout and resolve the current trusted PBX theme; future versions, modified signatures, rotated salts, and revoked subjects remain invalid.

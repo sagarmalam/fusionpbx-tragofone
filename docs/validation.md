@@ -1,6 +1,6 @@
 # Validation matrix
 
-The original MVP baseline through commit `376fbd4` was validated on 2026-07-22 against a private FusionPBX test domain and a disposable Tragofone company. Test credentials, tokens, SIP passwords, and encryption material are not stored in this repository.
+The provisioning baseline through commit `376fbd4` was validated on 2026-07-22 against a private FusionPBX test domain and a disposable Tragofone company. Test credentials, tokens, SIP passwords, encryption material, self-care salts, hashes, and full Account URLs are not stored in this repository.
 
 | Area | Cases | Result |
 |---|---|---|
@@ -45,6 +45,12 @@ The issue build is installed in the disposable environment. Live verification re
 
 The live QR response contains a short raw payload rather than image bytes. The companion renders it through FusionPBX's bundled QR library with PHP GD, validates the PNG, and does not persist it. The test host has no active Sendmail, Postfix, Exim, or configured equivalent, so actual QR email delivery is the only remaining environment-dependent QR check.
 
-## Phase 2 validation status
+## Self-care validation status
 
-Phase 2 has 94 unit/contract tests with 349 assertions on the deployed PHP 8.2.32 host, plus the PHP 8.1–8.3 CI matrix. Live acceptance covered valid launch and clean redirect; expiry, replay, and branding-signature rejection; account/DID summary; DND and forwarding conflicts; database/base64 Visual Voicemail listing, playback, read/unread, and deletion; notification email/PIN updates and blank-email clearing; user-level No/Inherit revocation and restoration with the same Tragofone user ID; compact remote My Account configuration; absence of a manual logout control; and a session-owned self-care device QR rendered from the live Tragofone payload as a valid 495 × 495 PNG. A Chrome device-metrics run at 320 × 700 confirmed 320px document width, four visible bottom tabs, and no horizontal overflow. Actual SMTP delivery and filesystem-backed voicemail media remain environment-dependent checks.
+The customer-release suite has 108 unit/contract tests with 414 assertions and passes on PHP 8.1, 8.2, and 8.3. Live acceptance covered valid launch and clean redirect; expiry, replay, and branding-signature rejection; account/DID summary; DND and forwarding conflicts; database/base64 Visual Voicemail listing, playback, read/unread, and deletion; notification email/PIN updates and blank-email clearing; user-level No/Inherit revocation and restoration with the same Tragofone user ID; compact remote My Account configuration; absence of a manual logout control; and a session-owned self-care device QR rendered from the live Tragofone payload as a valid 495 × 495 PNG. A Chrome device-metrics run at 320 × 700 confirmed 320px document width, four visible bottom tabs, and no horizontal overflow. Actual SMTP delivery and filesystem-backed voicemail media remain environment-dependent checks.
+
+## 2026-08-12 My Account regression validation
+
+Issue #22 was reopened repeatedly because the Tragofone desktop application could retain a previously provisioned compact Account URL while a global branding update advanced the PBX brand version. The permanent compatibility rule now accepts any authentic non-future compact version, always renders the current trusted PBX theme, and preserves salt rotation and subject revocation as explicit invalidation boundaries.
+
+The exact merged release commit was deployed to FusionPBX 5.5.12 on PHP 8.2.32. A live matrix passed 11/11 cases across multiple synchronized extensions: current URL, stale-but-authentic URL, future-version rejection, modified-signature rejection, expired assertion rejection, first-use acceptance, replay rejection, clean portal session, and 24-hour idle/absolute policy. The real Tragofone 3.38.21 desktop application also opened My Account successfully with both a cached prior-brand URL and the current reprovisioned URL. Worker and reconciliation services completed successfully after restart.

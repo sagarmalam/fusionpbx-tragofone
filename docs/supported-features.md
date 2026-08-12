@@ -2,7 +2,7 @@
 
 | Feature | Status |
 |---|---|
-| SIP credentials | Supported in MVP |
+| SIP credentials | Supported |
 | Tragofone application password | Same as the current FusionPBX SIP password |
 | Application username after extension renumber | Immutable; SIP identity and displayed extension update |
 | SIP server/transport/outbound proxy | Supported per tenant with deterministic proxy fallback |
@@ -16,7 +16,7 @@
 | Effective outbound caller ID | Supported and trusted from the FusionPBX extension |
 | Emergency number | Synchronized from FusionPBX Emergency Caller ID Number |
 | Multiple direct DID caller IDs | Supported as additional caller-ID choices |
-| DID assignment mapping/visibility | Supported in MVP |
+| DID assignment mapping/visibility | Supported |
 | One-touch FusionPBX voicemail | Supported; default `*97` |
 | Tragofone voicemail enablement | Synchronized from the FusionPBX mailbox's Voicemail Enabled state |
 | Local client call history | Supported by existing client; no data sync |
@@ -29,14 +29,14 @@
 | Tragofone voicemail integration | Enabled or disabled with the FusionPBX mailbox |
 | FusionPBX CDR synchronization | Not supported |
 | BLF/presence | Not supported |
-| Tragofone-native DND/call-forward synchronization | Not supported; use the Phase 2 companion portal |
+| Tragofone-native DND/call-forward synchronization | Not supported; use the companion self-care portal |
 | Bidirectional FusionPBX administration | Not supported |
 
 Operational controls include tenant pause/resume, per-extension selection, manual reconciliation, failed-job retry, deletion grace, one-time `401` reauthentication, and expired-lock recovery.
 
 The integration synchronizes SIP/application credentials, supported enterprise contacts, call timeout, voicemail enablement, Effective and Emergency Caller ID, and direct DID caller IDs. Call history remains local to the softphone.
 
-## Phase 2 self-care
+## Self-care portal
 
 | Feature | Status |
 |---|---|

@@ -12,7 +12,7 @@ For each enabled FusionPBX domain, the module can synchronize:
 - A restricted Tragofone client policy with audio calling, dialpad, local call history, enterprise contacts, and one-touch FusionPBX voicemail.
 - On-demand Tragofone QR enrollment that can be previewed, downloaded from FusionPBX, or sent through FusionPBX SMTP.
 
-Phase 1 does not synchronize CDRs, IM, SMS/MMS, video, BLF, DND, call forwarding, or Tragofone Cloud Contacts. Phase 2 lets an authenticated user manage FusionPBX DND and forwarding through the companion portal; those controls are not synchronized into Tragofone's native UI. See [Supported features](supported-features.md) for the complete matrix.
+The module does not synchronize CDRs, IM, SMS/MMS, video, BLF, or Tragofone Cloud Contacts. An authenticated user can manage FusionPBX DND and forwarding through the companion self-care portal; those controls are not synchronized into Tragofone's native UI. See [Supported features](supported-features.md) for the complete matrix.
 
 ## Roles and access
 
@@ -277,7 +277,7 @@ Authentication failure, `401`, or customer-ID mismatch can pause only the affect
 
 For operational failures, see [Troubleshooting](troubleshooting.md). For security ownership and threat boundaries, see [Security](security.md).
 
-## Phase 2 self-care
+## Self-care portal
 
 Only a Superadmin can configure branding. Open **Global → Self-Care Portal**. Set the global policy and public HTTPS portal directory, then select **Save Self-Care Access**. Upload an optional logo, set both theme palettes and choose forwarding/session policy, then select **Save Global Defaults**. Branding remains identical for every company. Branding, theme-restore, and salt-rotation actions preserve the access policy and portal URL; only **Save Self-Care Access** can change them.
 

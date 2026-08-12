@@ -52,7 +52,7 @@ Install missing PHP packages using the package names for the PHP minor version s
 
 ## 2. Obtain the private repository
 
-No signed release archive has been published yet. Clone the private repository with an authenticated GitHub account, or transfer an approved repository archive to a directory outside the FusionPBX web root:
+Obtain the approved customer release from the private repository or receive an approved archive through the normal customer-delivery channel. Keep the working copy outside the FusionPBX web root:
 
 ```bash
 mkdir -p "$HOME/src"
@@ -166,7 +166,7 @@ Use the same `PHP_BIN` and `FUSIONPBX_ROOT` values supplied to the installer on 
 5. Open **Extensions**, explicitly select the users to synchronize, and save.
 6. Run **Reconciliation**, then inspect **Jobs** and **Mappings**.
 7. Confirm the created Tragofone user, shared application/SIP password, SIP registration, Effective Outbound Caller ID and direct-DID choices, restricted feature policy, one-touch voicemail, and supported shared phonebook entries.
-8. To enable Phase 2, open **Global Settings → Self-Care Portal**, enter the public HTTPS URL ending in `/app/tragofone/selfcare`, configure branding, save, and verify that synchronization updates `myaccount_status` and `myaccount_url`.
+8. To enable self-care, open **Global Settings → Self-Care Portal**, enter the public HTTPS URL ending in `/app/tragofone/selfcare`, configure branding, save, and verify that synchronization updates `myaccount_status` and `myaccount_url`.
 9. For a synchronized extension, open **Extensions → Open QR**, preview the live QR, download it from the PBX, and send one test email if SMTP delivery is required.
 
 The public portal requires a certificate trusted by the mobile device. PHP-FPM must be able to read the normal FusionPBX voicemail storage path for playback and remove owned voicemail files when a user confirms deletion. No extra web-server route or FusionPBX license is required.
@@ -178,7 +178,7 @@ See [Configuration](configuration.md), [User manual](user-manual.md), and [Valid
 - The supported installer targets Linux/systemd. A non-systemd port needs separately maintained worker scheduling and is not currently supported.
 - The app never modifies FusionPBX core files or core tables.
 - Installation does not enable a tenant automatically and does not send data until an administrator configures and enables that tenant.
-- There is currently no signed release artifact. Install an approved commit and record its hash until the release process publishes checksummed, signed packages.
+- Install only an approved version tag, recorded commit, or checksummed customer package. Record the exact installed revision with the change ticket and rollback plan.
 
 ## Compatibility references
 

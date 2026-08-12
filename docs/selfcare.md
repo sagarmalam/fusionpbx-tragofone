@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The Phase 2 portal is a public FusionPBX route opened by Tragofone My Account. Public means that it does not show the FusionPBX login; it is never anonymous. A fresh signed Tragofone launch is required before a short server-side session is issued.
+The self-care portal is a public FusionPBX route opened by Tragofone My Account. Public means that it does not show the FusionPBX login; it is never anonymous. A fresh signed Tragofone launch is required before a server-side session is issued. Idle and absolute session limits default to 24 hours and remain subject to immediate policy, user, extension, mapping, and salt revocation.
 
 ## Superadmin setup
 
@@ -15,7 +15,7 @@ The Phase 2 portal is a public FusionPBX route opened by Tragofone My Account. P
 7. Set idle and absolute session timeouts and save. Both default to 86400 seconds (24 hours); shorter values can be selected from 300 seconds upward.
 8. Review queued jobs and mappings. Every eligible synchronized extension should receive `myaccount_status=TRUE` and a compact signed `myaccount_url` referencing the current global theme version.
 
-Branding is global. Company admins cannot override it. Saving a theme, logo, portal name, URL, or enable-state change increments the brand version and queues all eligible users for asynchronous reprovisioning.
+Branding is global. Company admins cannot override it. Saving a theme, logo, portal name, URL, or enable-state change increments the brand version and queues all eligible users for asynchronous reprovisioning. Branding/general saves cannot accidentally change self-care access or erase the public URL; those two values use the dedicated **Save Self-Care Access** action.
 
 ## Access policy
 
@@ -40,17 +40,16 @@ The portal follows the WebView/device light or dark preference. There is no port
 
 Tragofone limits `myaccount_url` to 200 characters. The worker therefore configures a compact extension-specific URL containing an opaque subject (`s`), global brand version (`v`), a 192-bit companion signature (`g`), and the per-user `tragofone_salt`. The raw theme remains in the Superadmin-owned FusionPBX configuration and is loaded only after the compact signature and brand version validate. Tragofone removes the salt and adds `tragofone_hash` and `tragofone_time` at launch.
 
-The portal validates the two-minute Tragofone assertion, 60-second future clock skew, companion HMAC, brand version, replay state, extension/mapping status, and effective global/domain/user access policy. Modified subject or brand-version parameters fail signature validation. It then redirects to a clean URL and stores only a hashed session token server-side. Legacy long-form signed links remain launch-compatible during migration, while all newly provisioned links use the compact format.
+The portal validates the two-minute Tragofone assertion, 60-second future clock skew, companion HMAC, brand-version reference, replay state, extension/mapping status, and effective global/domain/user access policy. Modified subject, signature, or future-version parameters fail validation. An authentic older compact URL remains usable during an asynchronous branding rollout and always renders the current trusted global theme; salt rotation or subject revocation invalidates it. The launch then redirects to a clean URL and stores only a hashed session token server-side. Legacy long-form signed links remain launch-compatible during migration, while all newly provisioned links use the compact format.
 
-## Mockups
+## Interface screenshots
 
-- [Interactive responsive mockup](mockups/selfcare.html)
-- [Interactive voicemail and state mockups](mockups/selfcare-states.html)
-- [Interactive Superadmin theme editor](mockups/selfcare-admin-theme.html)
-- [Desktop light screenshot](mockups/selfcare-desktop-light.png)
-- [Mobile dark screenshot](mockups/selfcare-mobile-dark.png)
-- [Voicemail, settings, and states screenshot](mockups/selfcare-states.png)
-- [Global theme editor screenshot](mockups/selfcare-admin-theme.png)
+- [FusionPBX global branding](images/fusionpbx-selfcare-branding.jpg)
+- [Self-care home](images/selfcare-home.jpg)
+- [Call handling](images/selfcare-call-handling.jpg)
+- [Voicemail settings and additional-device enrollment](images/selfcare-settings.jpg)
+
+These screenshots use non-production test users and telephone numbers. The portal automatically uses its signed global light or dark theme based on the hosting WebView/device preference and switches to four bottom tabs on narrow screens.
 
 ## Boundaries
 
