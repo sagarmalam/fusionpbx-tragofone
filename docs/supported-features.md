@@ -47,7 +47,7 @@ The integration synchronizes SIP/application credentials, supported enterprise c
 | Account, extension, DID, and caller-ID summary | Supported, read-only |
 | DND and all/busy/no-answer/not-registered forwarding | Supported |
 | External forwarding | Conditional on global prefix policy |
-| Visual Voicemail playback/download/read/delete | Supported when FusionPBX voicemail schema and media are available |
+| Visual Voicemail playback/download/read/delete | Supported when FusionPBX voicemail schema and media are available; timestamps use device local time and downloads support mobile WebViews |
 | Voicemail notification email and PIN | Supported |
 | Tenant-specific branding | Not supported; branding is global |
 | Server recordings and CDR history | Not supported in this release |

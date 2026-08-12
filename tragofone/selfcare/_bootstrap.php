@@ -11,7 +11,7 @@ header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()');
 $sc_nonce = rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
-header("Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; media-src 'self'; style-src 'self' 'nonce-{$sc_nonce}'");
+header("Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; media-src 'self'; script-src 'self'; connect-src 'self'; style-src 'self' 'nonce-{$sc_nonce}'");
 
 $database = new database();
 $sc_crypto = tragofone_crypto::from_environment();

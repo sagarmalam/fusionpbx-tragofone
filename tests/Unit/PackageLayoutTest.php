@@ -11,6 +11,7 @@ final class PackageLayoutTest extends TestCase {
 		self::assertFileExists($app.'/selfcare/launch.php');
 		self::assertFileExists($app.'/selfcare/index.php');
 		self::assertFileExists($app.'/selfcare/assets/selfcare.css');
+		self::assertFileExists($app.'/selfcare/assets/selfcare.js');
 		self::assertFileExists($app.'/qr_code.php');
 	}
 

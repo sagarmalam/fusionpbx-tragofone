@@ -31,7 +31,7 @@ From Tragofone, open **My Account**. A valid launch opens four responsive tabs:
 
 - **Home:** display name, extension, Effective Outbound Caller ID, direct DIDs, mailbox, DND, and forwarding summary.
 - **Call handling:** DND and always/busy/no-answer/not-registered forwarding. Internal destinations must belong to the same company; external numbers must match the Superadmin prefix policy.
-- **Voicemail:** owned message list, caller and time, duration, transcription when present, playback, download, read/unread, and confirmed permanent deletion.
+- **Voicemail:** owned message list, caller and device-local time, duration, transcription when present, playback, download, read/unread, and confirmed permanent deletion. Completing playback marks a new message read. Downloads use a two-minute encrypted, mailbox-owned token so Android and iOS download handlers do not need to copy the embedded WebView's session cookie.
 - **Settings:** one notification email, a new voicemail PIN, and an on-demand QR code for logging in on another Tragofone device. The current PIN is never displayed and the QR is never stored.
 
 The portal follows the WebView/device light or dark preference. There is no portal theme switch. When the session expires, return to Tragofone and open My Account again.
@@ -53,4 +53,4 @@ These screenshots use non-production test users and telephone numbers. The porta
 
 ## Boundaries
 
-This release does not expose SIP passwords, caller-ID changes, CDR history, server recordings, voicemail greetings, cross-tenant data, or generic FusionPBX administration. Tragofone-native voicemail, DND, and forwarding controls remain disabled; the companion portal is the authoritative self-care surface.
+This release does not expose SIP passwords, caller-ID changes, CDR history, server recordings, voicemail greetings, cross-tenant data, or generic FusionPBX administration. Tragofone-native DND and forwarding controls remain disabled by design; changing self-care access does not enable those native controls. The companion portal is the authoritative DND and forwarding surface.

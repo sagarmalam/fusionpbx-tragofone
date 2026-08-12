@@ -126,15 +126,16 @@ final class tragofone_selfcare_repository {
 
 	public function update_call_state(array $session, array $input): void {
 		$current = $this->call_state($session); $modes = [
-			'all'=>['forward_all_enabled','forward_all_destination'], 'busy'=>['forward_busy_enabled','forward_busy_destination'],
-			'no_answer'=>['forward_no_answer_enabled','forward_no_answer_destination'],
-			'not_registered'=>['forward_user_not_registered_enabled','forward_user_not_registered_destination'],
+			'all'=>['forward_all_enabled','forward_all_destination','Always forward'], 'busy'=>['forward_busy_enabled','forward_busy_destination','When busy'],
+			'no_answer'=>['forward_no_answer_enabled','forward_no_answer_destination','No answer'],
+			'not_registered'=>['forward_user_not_registered_enabled','forward_user_not_registered_destination','Not registered'],
 		];
 		$record = ['do_not_disturb'=>self::truth($input['do_not_disturb'] ?? false), 'follow_me_enabled'=>$current['follow_me_enabled'] ?? false];
 		$config = $this->global_config();
-		foreach ($modes as $mode => [$enabled_field,$destination_field]) {
+		foreach ($modes as $mode => [$enabled_field,$destination_field,$label]) {
 			$enabled = self::truth($input[$enabled_field] ?? false); $destination = trim((string) ($input[$destination_field] ?? ''));
 			if ($enabled) { $destination = $this->validate_forward_destination($session, $destination, $config); }
+			elseif ($destination !== '') { throw new InvalidArgumentException('Select '.$label.' to enable this forwarding destination.'); }
 			else { $destination = ''; }
 			$record[$enabled_field] = $enabled; $record[$destination_field] = $destination;
 		}
@@ -170,6 +171,27 @@ final class tragofone_selfcare_repository {
 		return $this->crypto->fingerprint('selfcare-voicemail-handle:'.$session['session_uuid'], $message_uuid);
 	}
 
+	public function voicemail_download_token(array $session, string $message_uuid): string {
+		if(!self::uuid_valid($message_uuid)||!self::uuid_valid((string)($session['session_uuid']??''))){return '';}
+		$payload=json_encode(['session'=>(string)$session['session_uuid'],'message'=>$message_uuid,'expires'=>time()+120],JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
+		return rtrim(strtr($this->crypto->encrypt($payload),'+/','-_'),'=');
+	}
+
+	public function voicemail_download_from_token(string $token): ?array {
+		if($token===''||strlen($token)>1024||!preg_match('/^[A-Za-z0-9_-]+$/',$token)){return null;}
+		try{$encoded=strtr($token,'-_','+/').str_repeat('=',(4-strlen($token)%4)%4);$decoded=$this->crypto->decrypt($encoded);$payload=json_decode($decoded,true,8,JSON_THROW_ON_ERROR);}catch(Throwable){return null;}
+		if(!is_array($payload)||!self::uuid_valid((string)($payload['session']??''))||!self::uuid_valid((string)($payload['message']??''))||(int)($payload['expires']??0)<time()||(int)($payload['expires']??0)>time()+180){return null;}
+		$sql="select ss.session_uuid,s.domain_uuid,s.extension_uuid,s.active,e.*,d.domain_name,m.sync_status,t.selfcare_policy as domain_selfcare_policy,p.selfcare_policy as user_selfcare_policy from v_tragofone_selfcare_sessions ss "
+			."join v_tragofone_selfcare_subjects s on s.subject_uuid=ss.subject_uuid join v_extensions e on e.extension_uuid=s.extension_uuid and e.domain_uuid=s.domain_uuid "
+			."join v_domains d on d.domain_uuid=s.domain_uuid join v_tragofone_tenants t on t.domain_uuid=s.domain_uuid and t.enabled=true "
+			."left join v_tragofone_extension_policies p on p.extension_uuid=s.extension_uuid and p.domain_uuid=s.domain_uuid "
+			."join v_tragofone_extension_mappings m on m.extension_uuid=s.extension_uuid and m.domain_uuid=s.domain_uuid and m.deleted_at is null "
+			."where ss.session_uuid=:session_uuid and ss.revoked_at is null and ss.idle_expires_at>now() and ss.absolute_expires_at>now() and s.active=true and e.enabled=true and m.sync_status='synchronized'";
+		$session=$this->row($sql,['session_uuid'=>$payload['session']]);if($session===null){return null;}
+		$config=$this->global_config();if(!tragofone_selfcare_policy::enabled(tragofone_selfcare_policy::global($config),$session['domain_selfcare_policy']??'inherit',$session['user_selfcare_policy']??'inherit')){return null;}
+		return $this->voicemail_message($session,(string)$payload['message']);
+	}
+
 	public function voicemail_message_from_handle(array $session, string $handle): ?array {
 		if (!preg_match('/^[0-9a-f]{64}$/', $handle)) { return null; }
 		foreach ($this->voicemail_messages($session) as $message) {
@@ -188,7 +210,29 @@ final class tragofone_selfcare_repository {
 
 	public function stream_voicemail(array $session, string $message_uuid, bool $download): never {
 		$message=$this->voicemail_message($session,$message_uuid); if($message===null){http_response_code(404);exit;}
-		$voicemail=$this->voicemail_service($message); $voicemail->type=$download?'bin':null; $voicemail->message_download((string)$message['domain_name']); exit;
+		$this->emit_voicemail_media($message,$download);
+	}
+
+	public function stream_downloaded_voicemail(array $message): never {
+		if(!self::uuid_valid((string)($message['voicemail_message_uuid']??''))){http_response_code(404);exit;}
+		$this->emit_voicemail_media($message,true);
+	}
+
+	private function emit_voicemail_media(array $message,bool $download): never {
+		$media=$this->voicemail_media($message);$bytes=$media['bytes'];$size=strlen($bytes);$start=0;$end=max(0,$size-1);
+		if($size===0){http_response_code(404);exit;}
+		$range=$_SERVER['HTTP_RANGE']??'';
+		if(!$download&&is_string($range)&&$range!==''&&preg_match('/^bytes=(\d*)-(\d*)$/',$range,$matches)){
+			if($matches[1]===''&&$matches[2]===''){http_response_code(416);header('Content-Range: bytes */'.$size);exit;}
+			if($matches[1]===''){$suffix=(int)$matches[2];if($suffix<=0){http_response_code(416);header('Content-Range: bytes */'.$size);exit;}$start=max(0,$size-$suffix);}
+			else{$start=(int)$matches[1];}
+			if($matches[2]!==''&&$matches[1]!==''){$end=min($end,(int)$matches[2]);}
+			if($start>$end||$start>=$size){http_response_code(416);header('Content-Range: bytes */'.$size);exit;}
+			http_response_code(206);header('Content-Range: bytes '.$start.'-'.$end.'/'.$size);
+		}
+		header('Accept-Ranges: bytes');header('Content-Type: '.$media['mime_type']);
+		header('Content-Disposition: '.($download?'attachment':'inline').'; filename="voicemail-message.'.$media['extension'].'"');
+		header('Content-Length: '.($end-$start+1));echo substr($bytes,$start,$end-$start+1);exit;
 	}
 
 	public function set_message_read(array $session, string $message_uuid, bool $read): void {
@@ -223,7 +267,8 @@ final class tragofone_selfcare_repository {
 	}
 
 	private function validate_forward_destination(array $session,string $destination,array $config): string {
-		$normalized=preg_replace('/[^+0-9]/','',$destination)??''; if(!preg_match('/^\+?\d{2,32}$/',$normalized)){throw new InvalidArgumentException('Forwarding destination must contain 2 to 32 digits.');}
+		if(!preg_match('/^\+?\d+$/',$destination)){throw new InvalidArgumentException('Forwarding destination may contain only numbers, with an optional leading +.');}
+		$normalized=$destination;if(strlen(ltrim($normalized,'+'))<2||strlen(ltrim($normalized,'+'))>32){throw new InvalidArgumentException('Forwarding destination must contain 2 to 32 digits.');}
 		$stored=ltrim($normalized,'+'); if($stored===(string)$session['extension']||$stored===(string)($session['number_alias']??'')){throw new InvalidArgumentException('An extension cannot forward to itself.');}
 		$internal=$this->row('select extension_uuid,extension,forward_all_enabled,forward_all_destination from v_extensions where domain_uuid=:domain_uuid and enabled=true and (extension=:destination or number_alias=:destination) limit 1',['domain_uuid'=>$session['domain_uuid'],'destination'=>$stored]);
 		if($internal!==null){$this->assert_no_forward_loop($session,(string)$internal['extension_uuid']);return $stored;}
@@ -247,8 +292,51 @@ final class tragofone_selfcare_repository {
 
 	private function invalidate_extension(array $session,array $state): void {
 		if(class_exists('cache')){$cache=new cache;$cache->delete('directory:'.$session['extension'].'@'.$session['domain_name']);if(!empty($session['number_alias'])){$cache->delete('directory:'.$session['number_alias'].'@'.$session['domain_name']);}}
+		$this->regenerate_extension_xml($session);
 		$root=dirname(__DIR__,4);$notify_file=$root.'/app/call_forward/resources/classes/feature_event_notify.php';
 		if(is_file($notify_file)&&class_exists('event_socket')){require_once $notify_file;if(class_exists('feature_event_notify')){$notify=new feature_event_notify;$notify->domain_name=$session['domain_name'];$notify->extension=$session['extension'];$notify->do_not_disturb=$state['do_not_disturb']?'true':'false';$notify->forward_all_enabled=$state['forward_all_enabled'];$notify->forward_all_destination=$state['forward_all_destination']?:'0';$notify->forward_busy_enabled=$state['forward_busy_enabled'];$notify->forward_busy_destination=$state['forward_busy_destination']?:'0';$notify->forward_no_answer_enabled=$state['forward_no_answer_enabled'];$notify->forward_no_answer_destination=$state['forward_no_answer_destination']?:'0';$notify->ring_count=5;$notify->send_notify();}}
+	}
+
+	private function regenerate_extension_xml(array $session): void {
+		$root=dirname(__DIR__,4);$extension_file=$root.'/app/extensions/resources/classes/extension.php';
+		if(!is_file($extension_file)){return;}require_once $extension_file;if(!class_exists('extension')){return;}
+		$domain_uuid=(string)($session['domain_uuid']??'');$domain_name=(string)($session['domain_name']??'');
+		if(!self::uuid_valid($domain_uuid)||$domain_name===''){throw new RuntimeException('FusionPBX extension identity is unavailable.');}
+		$settings=new settings(['database'=>$this->database,'domain_uuid'=>$domain_uuid]);
+		if(empty($settings->get('switch','extensions'))){return;}
+		$had_global=array_key_exists('domain_uuid',$GLOBALS);$previous_global=$GLOBALS['domain_uuid']??null;
+		$had_domain=isset($_SESSION['domains'])&&array_key_exists($domain_uuid,$_SESSION['domains']);$previous_domain=$_SESSION['domains'][$domain_uuid]??null;
+		$had_reload=array_key_exists('reload_xml',$_SESSION);$previous_reload=$_SESSION['reload_xml']??null;
+		try{
+			$GLOBALS['domain_uuid']=$domain_uuid;$_SESSION['domains'][$domain_uuid]['domain_name']=$domain_name;
+			$extension_service=new extension(['database'=>$this->database,'settings'=>$settings,'domain_uuid'=>$domain_uuid,'domain_name'=>$domain_name]);$extension_service->xml();
+			if(class_exists('event_socket')){event_socket::api('reloadxml');}
+		}catch(Throwable $error){throw new RuntimeException('Call settings were saved, but FreeSWITCH could not be refreshed. Save them again.',0,$error);}
+		finally{
+			if($had_global){$GLOBALS['domain_uuid']=$previous_global;}else{unset($GLOBALS['domain_uuid']);}
+			if($had_domain){$_SESSION['domains'][$domain_uuid]=$previous_domain;}else{unset($_SESSION['domains'][$domain_uuid]);}
+			if($had_reload){$_SESSION['reload_xml']=$previous_reload;}else{unset($_SESSION['reload_xml']);}
+		}
+	}
+
+	/** @return array{bytes:string,mime_type:string,extension:string} */
+	private function voicemail_media(array $message): array {
+		$settings=new settings(['database'=>$this->database,'domain_uuid'=>$message['domain_uuid']]);
+		$extension=strtolower((string)$settings->get('voicemail','file_ext','mp3'));
+		if(!in_array($extension,['wav','mp3','ogg'],true)){$extension='mp3';}
+		$bytes='';
+		if((string)$settings->get('voicemail','storage_type','')==='base64'){
+			$encoded=(string)($message['message_base64']??'');$decoded=base64_decode($encoded,true);if($decoded!==false){$bytes=$decoded;}
+		}else{
+			$root=realpath((string)$settings->get('switch','voicemail','/var/lib/freeswitch/storage/voicemail'));
+			$domain=$root===false?false:realpath($root.'/default/'.(string)$message['domain_name']);
+			$mailbox=$domain===false?false:realpath($domain.'/'.(string)$message['voicemail_id']);
+			if($root!==false&&$domain!==false&&$mailbox!==false&&str_starts_with($domain,$root.DIRECTORY_SEPARATOR)&&str_starts_with($mailbox,$domain.DIRECTORY_SEPARATOR)){
+				foreach(['wav','mp3','ogg'] as $candidate){$path=$mailbox.'/msg_'.(string)$message['voicemail_message_uuid'].'.'.$candidate;if(is_file($path)&&is_readable($path)){$content=file_get_contents($path);if(is_string($content)){$bytes=$content;$extension=$candidate;}break;}}
+			}
+		}
+		if($bytes===''){throw new RuntimeException('Voicemail audio is unavailable.');}
+		$mime=['wav'=>'audio/wav','mp3'=>'audio/mpeg','ogg'=>'audio/ogg'][$extension];return ['bytes'=>$bytes,'mime_type'=>$mime,'extension'=>$extension];
 	}
 
 	private function voicemail_service(array $message): object {

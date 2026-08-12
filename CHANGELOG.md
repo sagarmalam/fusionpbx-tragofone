@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.1 - 2026-08-12
+
+- Auto-dismiss transient self-care success and validation messages after five seconds.
+- Keep call-handling validation errors on the Call Handling page and reject non-numeric forwarding destinations without silently modifying them.
+- Require a forwarding mode to be selected when its destination is populated.
+- Regenerate FusionPBX extension XML, clear directory cache, and reload FreeSWITCH after DND or forwarding changes.
+- Stream voicemail with standard audio, range, length, and attachment headers, and use a two-minute encrypted download token compatible with mobile WebView download handlers.
+- Render voicemail timestamps in the device's local time and mark new messages read when playback completes.
+- Standardize self-care voicemail action controls.
+- Give Extension Synchronization search a consistent border and display a clear empty result when no extension matches.
+
 ## 0.2.0 - Release candidate
 
 - Re-license the project under Apache License 2.0 and update ownership to Trago Communications Pvt Ltd.
