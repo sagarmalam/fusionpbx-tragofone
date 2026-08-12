@@ -2,6 +2,7 @@
 
 ## 0.2.0 - Release candidate
 
+- Re-license the project under Apache License 2.0 and update ownership to Trago Communications Pvt Ltd.
 - Add the signed self-care portal with global light/dark branding referenced by each Tragofone Account URL.
 - Add per-extension one-time launch subjects, encrypted salts, server-side sessions, replay protection, rate limiting, CSRF protection, and session revocation.
 - Add responsive account summary, DND and forwarding, FusionPBX Visual Voicemail, voicemail email, and PIN self-care.

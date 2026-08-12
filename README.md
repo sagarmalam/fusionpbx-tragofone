@@ -164,4 +164,4 @@ CI runs syntax checks and 108 automated tests with 414 assertions on PHP 8.1, 8.
 
 ## License
 
-Copyright (c) 2026 Ecosmob Technologies. All rights reserved. This repository is proprietary; customer access and redistribution are governed by the applicable commercial agreement.
+Copyright 2026 Trago Communications Pvt Ltd. Licensed under the [Apache License 2.0](LICENSE). You may use, modify, and distribute this software subject to the license terms. Tragofone and other product names or marks remain the property of their respective owners.
