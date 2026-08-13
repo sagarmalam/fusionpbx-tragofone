@@ -4,7 +4,7 @@ Native, multi-tenant FusionPBX application for provisioning and operating Tragof
 
 The application works with open-source FusionPBX. It does not require a FusionPBX commercial license, licensed API, core patch, remote database connection, or Tragofone server/client change.
 
-Current package version: **0.2.2**. See the exact supported platform and validation boundaries in [Installation](docs/installation.md) and [Validation](docs/validation.md).
+Current package version: **0.2.3**. See the exact supported platform and validation boundaries in [Installation](docs/installation.md) and [Validation](docs/validation.md).
 
 ## Features
 

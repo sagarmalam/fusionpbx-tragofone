@@ -13,13 +13,16 @@ final class PackageLayoutTest extends TestCase {
 		self::assertFileExists($app.'/selfcare/assets/selfcare.css');
 		self::assertFileExists($app.'/selfcare/assets/selfcare.js');
 		self::assertFileExists($app.'/qr_code.php');
+		self::assertFileExists($app.'/resources/switch/conf/dialplan/893_tragofone-forward-rejected-hook.xml');
 		self::assertFileExists($app.'/resources/switch/conf/dialplan/894_tragofone-forward-rejected.xml');
+		self::assertStringContainsString("['version'] = '".trim(file_get_contents(dirname(__DIR__, 2).'/VERSION'))."'", file_get_contents($app.'/app_config.php'));
 	}
 
 	public function test_installer_resolves_native_app_not_repository_root(): void {
 		$installer = file_get_contents(dirname(__DIR__, 2).'/tragofone/resources/install/install.sh');
 		self::assertStringContainsString('/../.." && pwd)', $installer);
 		self::assertStringNotContainsString('/../../.." && pwd)', $installer);
+		self::assertStringContainsString('dialplan:', $installer);
 	}
 
 	public function test_public_voicemail_pages_use_opaque_message_handles(): void {

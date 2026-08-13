@@ -27,7 +27,7 @@ The test leaves two active extensions, two active direct DID mappings, and one s
 |---|---|---|
 | #3 shared application/SIP password | Create and update payload tests; 20-character boundary tests; current OpenAPI user-update contract | Deployed; new users and separate SIP configuration completed successfully |
 | #4 outbound proxy | Default and explicit proxy payload tests; tenant-policy change detection | Passed; remote user configuration contained the resolved TLS proxy host and port |
-| #5 Outbound Caller ID Number | Source-field priority, normalization, de-duplication, fallback, and no-direct-route tests | Reopened QA case fixed in 0.2.2; remote revalidation required after deployment |
+| #5 Outbound Caller ID Number | Source-field priority, normalization, de-duplication, fallback, and no-direct-route tests | Passed live; extension 304 synchronized and remote `sip_callerid` read back `30000004` while Effective Caller ID Number was blank |
 | #6 account name | User-update payload and mapping-state tests against `usr_account_name` contract | Passed; remote account name matched FusionPBX Effective Caller ID Name |
 | #7 extension renumbering | Immutable username/user ID plus updated SIP identity and mapping display tests; OpenAPI confirms `usr_username` is not updateable | Automated/contract validation passed; no destructive live renumber was performed in this deployment pass |
 
@@ -47,10 +47,22 @@ The live QR response contains a short raw payload rather than image bytes. The c
 
 ## Self-care validation status
 
-The customer-release suite has 116 unit/contract tests with 454 assertions and passes on PHP 8.1, 8.2, and 8.3. Live acceptance covered valid launch and clean redirect; expiry, replay, and branding-signature rejection; account/DID summary; DND and forwarding conflicts; database/base64 Visual Voicemail listing, playback, read/unread, and deletion; notification email/PIN updates and blank-email clearing; user-level No/Inherit revocation and restoration with the same Tragofone user ID; compact remote My Account configuration; absence of a manual logout control; and a session-owned self-care device QR rendered from the live Tragofone payload as a valid 495 × 495 PNG. A Chrome device-metrics run at 320 × 700 confirmed 320px document width, four visible bottom tabs, and no horizontal overflow. Actual SMTP delivery and filesystem-backed voicemail media remain environment-dependent checks.
+The customer-release suite has 117 unit/contract tests with 464 assertions and passes on PHP 8.1, 8.2, and 8.3. Live acceptance covered valid launch and clean redirect; expiry, replay, and branding-signature rejection; account/DID summary; DND and forwarding conflicts; database/base64 Visual Voicemail listing, playback, read/unread, and deletion; notification email/PIN updates and blank-email clearing; user-level No/Inherit revocation and restoration with the same Tragofone user ID; compact remote My Account configuration; absence of a manual logout control; and a session-owned self-care device QR rendered from the live Tragofone payload as a valid 495 × 495 PNG. A Chrome device-metrics run at 320 × 700 confirmed 320px document width, four visible bottom tabs, and no horizontal overflow. Actual SMTP delivery remains environment-dependent.
 
 ## 2026-08-12 My Account regression validation
 
 Issue #22 was reopened repeatedly because the Tragofone desktop application could retain a previously provisioned compact Account URL while a global branding update advanced the PBX brand version. The permanent compatibility rule now accepts any authentic non-future compact version, always renders the current trusted PBX theme, and preserves salt rotation and subject revocation as explicit invalidation boundaries.
 
 The exact merged release commit was deployed to FusionPBX 5.5.12 on PHP 8.2.32. A live matrix passed 11/11 cases across multiple synchronized extensions: current URL, stale-but-authentic URL, future-version rejection, modified-signature rejection, expired assertion rejection, first-use acceptance, replay rejection, clean portal session, and 24-hour idle/absolute policy. The real Tragofone 3.38.21 desktop application also opened My Account successfully with both a cached prior-brand URL and the current reprovisioned URL. Worker and reconciliation services completed successfully after restart.
+
+## 2026-08-13 reopened-issue validation
+
+Version 0.2.3 was installed on the FusionPBX 5.5.12 / PHP 8.2.32 QA host before these checks.
+
+| Issue | Live validation | Result |
+|---|---|---|
+| #5 Outbound caller ID | Extension 304 had Outbound Caller ID `30000004` and a blank Effective number; the completed job contained the same DID and Tragofone configuration readback returned `sip_callerid=30000004` | Passed |
+| #11 Extension length | The installed normalizer accepted 2 and 15 alphanumeric characters and rejected 1, 16, 18, and punctuation-containing values before synchronization | Passed |
+| #31 Voicemail Read state | An unread filesystem-backed message changed immediately from **New / Mark read** to **Read / Mark unread** when native playback began; PostgreSQL recorded `message_status=saved` and `read_epoch` | Passed |
+| #34 When busy after Reject | A controlled `CALL_REJECTED` bridge for extension 304 executed the post-bridge hook and transferred to configured busy destination 301 before voicemail; temporary dial-string state was restored | Passed |
+| #36 Mobile voicemail media | Cookie-free playback returned `206 audio/wav` with a valid byte range; cookie-free direct download returned `200 application/octet-stream`, attachment disposition, and a complete valid 97,324-byte WAV | Server contract passed; final Android/iOS file-picker presentation remains client-owned |

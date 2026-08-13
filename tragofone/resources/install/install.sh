@@ -64,6 +64,17 @@ chown "root:${FUSIONPBX_GROUP}" /etc/fusionpbx/tragofone.env
 chmod 0640 /etc/fusionpbx/tragofone.env
 "${PHP_BIN}" "${FUSIONPBX_ROOT}/core/upgrade/upgrade.php"
 "${PHP_BIN}" "${FUSIONPBX_ROOT}/core/upgrade/upgrade.php" -g
+# App Defaults normally performs this invalidation. Repeat it after both
+# upgrade passes so unattended installs cannot retain a pre-import dialplan.
+FUSIONPBX_ROOT_ENV="${FUSIONPBX_ROOT}" "${PHP_BIN}" -r '
+	$root = getenv("FUSIONPBX_ROOT_ENV");
+	require $root."/resources/require.php";
+	$database = new database();
+	$cache = new cache();
+	foreach ($database->select("select domain_name from v_domains where domain_enabled = true", null, "all") ?: [] as $domain) {
+		if (!empty($domain["domain_name"])) { $cache->delete("dialplan:".$domain["domain_name"]); }
+	}
+'
 systemctl daemon-reload
 systemctl enable --now tragofone-worker.timer tragofone-reconcile.timer
 echo "Installed with PHP ${PHP_BIN}, FusionPBX root ${FUSIONPBX_ROOT}, and runtime ${FUSIONPBX_USER}:${FUSIONPBX_GROUP}."

@@ -1,0 +1,9 @@
+<extension name="tragofone-forward-rejected-hook" number="" context="global" continue="true" app_uuid="77f76ce5-5c63-4714-a171-683d59a89eec" global="true" order="893">
+	<!-- XML dialplan conditions are resolved before the local extension bridge
+	     runs. Queue a fresh dialplan pass after that bridge so the resulting
+	     originate_disposition can be evaluated at execution time. -->
+	<condition field="${user_exists}" expression="^true$"/>
+	<condition field="destination_number" expression="^(?!tragofone_forward_rejected$).+$">
+		<action application="execute_extension" data="tragofone_forward_rejected XML ${context}"/>
+	</condition>
+</extension>

@@ -91,11 +91,24 @@ final class SelfCareIssueRegressionTest extends TestCase {
 	}
 
 	public function test_rejected_tragofone_calls_have_a_companion_busy_forward_dialplan(): void {
+		$hook=file_get_contents(dirname(__DIR__,2).'/tragofone/resources/switch/conf/dialplan/893_tragofone-forward-rejected-hook.xml');
 		$dialplan=file_get_contents(dirname(__DIR__,2).'/tragofone/resources/switch/conf/dialplan/894_tragofone-forward-rejected.xml');
+		self::assertStringContainsString('continue="true"',$hook);
+		self::assertStringContainsString('application="execute_extension"',$hook);
+		self::assertStringContainsString('tragofone_forward_rejected XML ${context}',$hook);
+		preg_match('/app_uuid="([^"]+)"/',$hook,$hook_uuid);preg_match('/app_uuid="([^"]+)"/',$dialplan,$handler_uuid);
+		self::assertNotSame($handler_uuid[1]??null,$hook_uuid[1]??null,'FusionPBX imports only one global dialplan per app_uuid.');
+		self::assertStringContainsString('^tragofone_forward_rejected$',$dialplan);
 		self::assertStringContainsString('^CALL_REJECTED$',$dialplan);
 		self::assertStringContainsString('${forward_busy_enabled}',$dialplan);
 		self::assertStringContainsString('${forward_busy_destination}',$dialplan);
 		self::assertStringContainsString('application="transfer"',$dialplan);
+	}
+
+	public function test_app_defaults_invalidates_cached_tenant_dialplans(): void {
+		$defaults=file_get_contents(dirname(__DIR__,2).'/tragofone/app_defaults.php');
+		self::assertStringContainsString("select domain_name from v_domains where domain_enabled = true",$defaults);
+		self::assertStringContainsString("delete('dialplan:'",$defaults);
 	}
 
 	public function test_extension_search_has_consistent_border_and_empty_result_state(): void {
