@@ -18,7 +18,7 @@ final class tragofone_feature_policy {
 				'sip_auth_sipPort' => $sip_port, 'sip_auth_sipProtocol' => $tenant['sip_protocol'],
 				'sip_auth_outboundProxyServer' => $outbound_proxy_server,
 				'sip_auth_outboundProxyPort' => $outbound_proxy_port,
-				// The scanner places the trusted Effective Outbound Caller ID first,
+				// The scanner places the trusted FusionPBX Outbound Caller ID first,
 				// followed by normalized direct-DID choices.
 				'sip_extension' => $sip_extension, 'sip_callerid' => implode(',', $dids),
 				'sip_register_interval' => '3600', 'sip_register_respectServerExpires' => 'TRUE',

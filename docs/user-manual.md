@@ -203,14 +203,14 @@ The Tragofone application username remains unchanged when an extension is renumb
 
 ### Manage outbound caller ID and direct DIDs
 
-Set the extension's Effective Outbound Caller ID and, when required, configure enabled voice-capable inbound destinations that route directly and unambiguously to the extension. On the next scan:
+Set the extension's **Outbound Caller ID Number** and, when required, configure enabled voice-capable inbound destinations that route directly and unambiguously to the extension. On the next scan:
 
-- The extension's Effective Outbound Caller ID is trusted and becomes the first caller-ID choice.
+- The extension's Outbound Caller ID Number is trusted and becomes the first caller-ID choice. If it is blank, Effective Caller ID Number is used as a compatibility fallback.
 - Every eligible direct DID becomes an additional caller-ID choice.
 - Removing or disabling the direct route removes that DID.
-- Removing the final direct DID leaves the effective outbound value in place. The list is cleared only when that value is also blank.
+- Removing the final direct DID leaves the selected outbound value in place. The list is cleared only when both caller-ID source fields are blank.
 
-IVRs, queues, ring groups, time conditions, external routes, and ambiguous action chains are ignored for direct-DID mappings. They do not prevent the explicitly configured Effective Outbound Caller ID from synchronizing. See [Caller-ID synchronization](did-caller-id.md).
+IVRs, queues, ring groups, time conditions, external routes, and ambiguous action chains are ignored for direct-DID mappings. They do not prevent the explicitly configured Outbound Caller ID Number from synchronizing. See [Caller-ID synchronization](did-caller-id.md).
 
 ### Manage the company phonebook
 

@@ -13,6 +13,7 @@ final class PackageLayoutTest extends TestCase {
 		self::assertFileExists($app.'/selfcare/assets/selfcare.css');
 		self::assertFileExists($app.'/selfcare/assets/selfcare.js');
 		self::assertFileExists($app.'/qr_code.php');
+		self::assertFileExists($app.'/resources/switch/conf/dialplan/894_tragofone-forward-rejected.xml');
 	}
 
 	public function test_installer_resolves_native_app_not_repository_root(): void {

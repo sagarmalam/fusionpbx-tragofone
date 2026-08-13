@@ -4,7 +4,7 @@ Native, multi-tenant FusionPBX application for provisioning and operating Tragof
 
 The application works with open-source FusionPBX. It does not require a FusionPBX commercial license, licensed API, core patch, remote database connection, or Tragofone server/client change.
 
-Current package version: **0.2.1**. See the exact supported platform and validation boundaries in [Installation](docs/installation.md) and [Validation](docs/validation.md).
+Current package version: **0.2.2**. See the exact supported platform and validation boundaries in [Installation](docs/installation.md) and [Validation](docs/validation.md).
 
 ## Features
 
@@ -19,7 +19,7 @@ Current package version: **0.2.1**. See the exact supported platform and validat
 ### SIP user provisioning and lifecycle
 
 - Per-extension include/exclude selection, bulk selection, search, and a tenant default for newly discovered extensions.
-- Numeric and alphanumeric extensions containing 2–15 ASCII letters or digits.
+- Numeric and alphanumeric extensions containing 2–15 ASCII letters or digits. FusionPBX may store broader identifiers, but the companion makes them visibly ineligible and never provisions them.
 - Globally unique Tragofone login `{extension}@{domain}` with the FusionPBX extension retained as the SIP username/authentication ID.
 - The current FusionPBX SIP password is also the Tragofone application-login password and is rotated through the existing update APIs.
 - Separate user creation and SIP-configuration phases with immediate `extension_uuid → usr_id` persistence to prevent duplicate users.
@@ -32,7 +32,7 @@ Current package version: **0.2.1**. See the exact supported platform and validat
 - FusionPBX Call Timeout to Tragofone No Answer Timeout.
 - FusionPBX Emergency Caller ID Number to Tragofone emergency numbers.
 - FusionPBX mailbox Voicemail Enabled state to Tragofone voicemail status.
-- Effective Outbound Caller ID is trusted as the primary caller-ID choice.
+- FusionPBX **Outbound Caller ID Number** is trusted as the primary caller-ID choice; Effective Caller ID Number is used only as a backward-compatible fallback when it is blank.
 - Every enabled, unambiguous, directly assigned voice DID is added as an additional caller-ID choice.
 - IVRs, queues, ring groups, time conditions, external routes, and ambiguous action chains are never treated as direct DID assignments.
 
@@ -149,7 +149,7 @@ Use the [User manual](docs/user-manual.md) for the complete Superadmin and compa
 - QR email delivery requires working FusionPBX SMTP/mail transport.
 - Visual Voicemail requires the supported FusionPBX voicemail schema and readable media storage.
 - Tenant-specific self-care branding, FusionPBX CDR synchronization, server recordings, voicemail greeting management, native Tragofone Visual Voicemail, and bidirectional FusionPBX administration are not included.
-- Effective Outbound Caller ID is trusted from FusionPBX; administrators and carriers remain responsible for caller-ID authorization and anti-spoofing controls.
+- Outbound Caller ID Number is trusted from FusionPBX; administrators and carriers remain responsible for caller-ID authorization and anti-spoofing controls.
 - Production activation should follow the deployment's normal backup, change-control, acceptance-test, security-review, and rollback procedures.
 
 ## Development
@@ -160,7 +160,7 @@ composer lint
 composer test
 ```
 
-CI runs syntax checks and 108 automated tests with 414 assertions on PHP 8.1, 8.2, and 8.3.
+CI runs syntax checks and 116 automated tests with 454 assertions on PHP 8.1, 8.2, and 8.3.
 
 ## License
 

@@ -4,7 +4,7 @@
 $apps[$x]['name'] = 'Tragofone';
 $apps[$x]['uuid'] = '1b9e9c69-7d33-4d44-99ae-ccecb9e5d001';
 $apps[$x]['category'] = 'Advanced';
-$apps[$x]['version'] = '0.2.1';
+$apps[$x]['version'] = '0.2.2';
 $apps[$x]['license'] = 'Apache-2.0';
 $apps[$x]['url'] = 'https://github.com/sagarmalam/fusionpbx-tragofone';
 $apps[$x]['description']['en-us'] = 'Tenant-aware Tragofone provisioning companion.';

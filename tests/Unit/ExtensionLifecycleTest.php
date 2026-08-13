@@ -160,6 +160,17 @@ final class ExtensionLifecycleTest extends TestCase {
 		self::assertArrayHasKey('extension:ext-1', $store->snapshots);
 	}
 
+	public function test_scanner_prefers_fusionpbx_outbound_caller_id_over_effective_caller_id(): void {
+		$store = new extension_lifecycle_store(); $extension = $this->extension();
+		$extension['effective_caller_id_number'] = '304';
+		$extension['outbound_caller_id_number'] = '30000004';
+		$store->extensions = [$extension];
+		self::assertSame(1, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1'], null));
+		$payload = json_decode($store->jobs[0]['payload'], true, 512, JSON_THROW_ON_ERROR);
+		self::assertSame(['30000004'], $payload['dids']);
+		self::assertSame(12, $payload['policy_version']);
+	}
+
 	public function test_tenant_sip_policy_change_queues_configuration_update(): void {
 		$store = new extension_lifecycle_store();
 		$store->extensions = [$this->extension()];

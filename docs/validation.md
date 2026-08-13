@@ -27,7 +27,7 @@ The test leaves two active extensions, two active direct DID mappings, and one s
 |---|---|---|
 | #3 shared application/SIP password | Create and update payload tests; 20-character boundary tests; current OpenAPI user-update contract | Deployed; new users and separate SIP configuration completed successfully |
 | #4 outbound proxy | Default and explicit proxy payload tests; tenant-policy change detection | Passed; remote user configuration contained the resolved TLS proxy host and port |
-| #5 Effective Outbound Caller ID | Normalization, priority, de-duplication, and no-direct-route tests | Passed; remote `sip_callerid` placed the effective value before the second direct DID |
+| #5 Outbound Caller ID Number | Source-field priority, normalization, de-duplication, fallback, and no-direct-route tests | Reopened QA case fixed in 0.2.2; remote revalidation required after deployment |
 | #6 account name | User-update payload and mapping-state tests against `usr_account_name` contract | Passed; remote account name matched FusionPBX Effective Caller ID Name |
 | #7 extension renumbering | Immutable username/user ID plus updated SIP identity and mapping display tests; OpenAPI confirms `usr_username` is not updateable | Automated/contract validation passed; no destructive live renumber was performed in this deployment pass |
 
@@ -39,7 +39,7 @@ The issue build is installed in the disposable environment. Live verification re
 |---|---|---|
 | #9 Call Timeout | `call_timeout` normalization and `call_noAnswerTimeout` payload tests | Passed; remote configuration read back `30` seconds |
 | #10 Emergency Caller ID | Number normalization, set, and clear payload tests for `emergency_numbers` | Automated set/clear coverage passed; the inspected live extension had no non-empty emergency value |
-| #11 Extension validation | Numeric/alphanumeric acceptance and 2–15 character boundary tests; invalid users are not queued | Passed in automated boundary coverage; four valid live test users synchronized |
+| #11 Extension validation | Numeric/alphanumeric acceptance and 2–15 character boundary tests; invalid users are not queued | Companion boundary passed; FusionPBX's native editor may still store broader identifiers, which remain visibly ineligible and unsynchronized |
 | #12 Voicemail Enabled | Mailbox join/change detection and TRUE/FALSE `voicemail_status` tests | Passed; enabled live mailbox read back `TRUE` remotely |
 | QR login | Mapped-user API request, tenant identity, image/payload extraction, malformed-image rejection, permission/CSRF/no-store package checks | Live raw `data.qr_code` payload rendered, previewed, and downloaded; email delivery awaits a configured PBX mail transport |
 
@@ -47,7 +47,7 @@ The live QR response contains a short raw payload rather than image bytes. The c
 
 ## Self-care validation status
 
-The customer-release suite has 108 unit/contract tests with 414 assertions and passes on PHP 8.1, 8.2, and 8.3. Live acceptance covered valid launch and clean redirect; expiry, replay, and branding-signature rejection; account/DID summary; DND and forwarding conflicts; database/base64 Visual Voicemail listing, playback, read/unread, and deletion; notification email/PIN updates and blank-email clearing; user-level No/Inherit revocation and restoration with the same Tragofone user ID; compact remote My Account configuration; absence of a manual logout control; and a session-owned self-care device QR rendered from the live Tragofone payload as a valid 495 × 495 PNG. A Chrome device-metrics run at 320 × 700 confirmed 320px document width, four visible bottom tabs, and no horizontal overflow. Actual SMTP delivery and filesystem-backed voicemail media remain environment-dependent checks.
+The customer-release suite has 116 unit/contract tests with 454 assertions and passes on PHP 8.1, 8.2, and 8.3. Live acceptance covered valid launch and clean redirect; expiry, replay, and branding-signature rejection; account/DID summary; DND and forwarding conflicts; database/base64 Visual Voicemail listing, playback, read/unread, and deletion; notification email/PIN updates and blank-email clearing; user-level No/Inherit revocation and restoration with the same Tragofone user ID; compact remote My Account configuration; absence of a manual logout control; and a session-owned self-care device QR rendered from the live Tragofone payload as a valid 495 × 495 PNG. A Chrome device-metrics run at 320 × 700 confirmed 320px document width, four visible bottom tabs, and no horizontal overflow. Actual SMTP delivery and filesystem-backed voicemail media remain environment-dependent checks.
 
 ## 2026-08-12 My Account regression validation
 

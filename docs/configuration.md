@@ -23,7 +23,7 @@ Changing the SIP server, SIP port, transport, outbound proxy, profile, or voicem
 
 The FusionPBX SIP password is also the Tragofone application-login password. A SIP password rotation updates both credentials. The application username created as `{extension}@{domain}` remains immutable; extension renumbering updates the mapped SIP identity but does not rename or replace the Tragofone user.
 
-Effective Outbound Caller ID is trusted as configured in FusionPBX and is sent first in `sip_callerid`, followed by direct DIDs. FusionPBX administrators remain responsible for outbound caller-ID authorization.
+Outbound Caller ID Number is trusted as configured in FusionPBX and is sent first in `sip_callerid`, followed by direct DIDs. Effective Caller ID Number is used only when the outbound field is blank. FusionPBX administrators remain responsible for outbound caller-ID authorization.
 
 The shared FusionPBX phonebook uses the same tenant company-admin credentials through the customer enterprise-directory API. No dedicated app user is needed on the validated deployment. Missing contact tables or a contact-specific failure never blocks SIP/DID processing. Tragofone Cloud Contacts remain disabled; phonebook records are tenant-wide Enterprise Directory entries.
 

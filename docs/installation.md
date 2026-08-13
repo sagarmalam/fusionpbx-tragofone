@@ -165,7 +165,7 @@ Use the same `PHP_BIN` and `FUSIONPBX_ROOT` values supplied to the installer on 
 4. Use **Test Connection** before enabling synchronization.
 5. Open **Extensions**, explicitly select the users to synchronize, and save.
 6. Run **Reconciliation**, then inspect **Jobs** and **Mappings**.
-7. Confirm the created Tragofone user, shared application/SIP password, SIP registration, Effective Outbound Caller ID and direct-DID choices, restricted feature policy, one-touch voicemail, and supported shared phonebook entries.
+7. Confirm the created Tragofone user, shared application/SIP password, SIP registration, Outbound Caller ID Number and direct-DID choices, restricted feature policy, one-touch voicemail, and supported shared phonebook entries.
 8. To enable self-care, open **Global Settings → Self-Care Portal**, enter the public HTTPS URL ending in `/app/tragofone/selfcare`, configure branding, save, and verify that synchronization updates `myaccount_status` and `myaccount_url`.
 9. For a synchronized extension, open **Extensions → Open QR**, preview the live QR, download it from the PBX, and send one test email if SMTP delivery is required.
 
@@ -176,7 +176,7 @@ See [Configuration](configuration.md), [User manual](user-manual.md), and [Valid
 ## Installation boundaries
 
 - The supported installer targets Linux/systemd. A non-systemd port needs separately maintained worker scheduling and is not currently supported.
-- The app never modifies FusionPBX core files or core tables.
+- The app never patches FusionPBX core source files or alters core table schemas. App Defaults imports one companion-owned order-894 dialplan through FusionPBX's native dialplan installer so a Tragofone `603 Decline` can use the configured busy-forward destination.
 - Installation does not enable a tenant automatically and does not send data until an administrator configures and enables that tenant.
 - Install only an approved version tag, recorded commit, or checksummed customer package. Record the exact installed revision with the change ticket and rollback plan.
 

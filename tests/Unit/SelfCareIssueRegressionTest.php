@@ -62,7 +62,8 @@ final class SelfCareIssueRegressionTest extends TestCase {
 		self::assertStringContainsString('data-auto-dismiss',$layout);
 		self::assertStringContainsString('time datetime=', $voicemail);
 		self::assertStringContainsString('data-epoch=', $voicemail);
-		self::assertStringContainsString("audio.addEventListener('ended'",$script);
+		self::assertStringContainsString("audio.addEventListener('playing'",$script);
+		self::assertStringNotContainsString('fetch(form.action',$script);
 		self::assertStringContainsString("Intl.DateTimeFormat",$script);
 	}
 
@@ -70,8 +71,10 @@ final class SelfCareIssueRegressionTest extends TestCase {
 		$app=dirname(__DIR__,2).'/tragofone/selfcare';
 		$action=file_get_contents($app.'/action.php');$voicemail=file_get_contents($app.'/voicemail.php');$repository=file_get_contents(dirname($app).'/resources/classes/tragofone_selfcare_repository.php');
 		self::assertStringContainsString("'save_calls'=>'calls.php'",$action);
+		self::assertStringContainsString('voicemail_playback_token',$voicemail);
 		self::assertStringContainsString(' download>Download</a>',$voicemail);
 		self::assertStringContainsString("header('Accept-Ranges: bytes')",$repository);
+		self::assertStringContainsString('application/octet-stream',$repository);
 		self::assertStringContainsString("Content-Disposition:",$repository);
 	}
 
@@ -81,7 +84,18 @@ final class SelfCareIssueRegressionTest extends TestCase {
 		$token=$repository->voicemail_download_token(['session_uuid'=>$session_uuid],$message_uuid);
 		self::assertMatchesRegularExpression('/^[A-Za-z0-9_-]+$/',$token);self::assertStringNotContainsString($session_uuid,$token);self::assertStringNotContainsString($message_uuid,$token);
 		$encoded=strtr($token,'-_','+/').str_repeat('=',(4-strlen($token)%4)%4);$payload=json_decode($crypto->decrypt($encoded),true,8,JSON_THROW_ON_ERROR);
-		self::assertSame($session_uuid,$payload['session']);self::assertSame($message_uuid,$payload['message']);self::assertGreaterThanOrEqual(time()+115,$payload['expires']);self::assertLessThanOrEqual(time()+120,$payload['expires']);
+		self::assertSame($session_uuid,$payload['session']);self::assertSame($message_uuid,$payload['message']);self::assertTrue($payload['download']);self::assertGreaterThanOrEqual(time()+895,$payload['expires']);self::assertLessThanOrEqual(time()+900,$payload['expires']);
+		$playback=$repository->voicemail_playback_token(['session_uuid'=>$session_uuid],$message_uuid);
+		$encoded=strtr($playback,'-_','+/').str_repeat('=',(4-strlen($playback)%4)%4);$playback_payload=json_decode($crypto->decrypt($encoded),true,8,JSON_THROW_ON_ERROR);
+		self::assertFalse($playback_payload['download']);
+	}
+
+	public function test_rejected_tragofone_calls_have_a_companion_busy_forward_dialplan(): void {
+		$dialplan=file_get_contents(dirname(__DIR__,2).'/tragofone/resources/switch/conf/dialplan/894_tragofone-forward-rejected.xml');
+		self::assertStringContainsString('^CALL_REJECTED$',$dialplan);
+		self::assertStringContainsString('${forward_busy_enabled}',$dialplan);
+		self::assertStringContainsString('${forward_busy_destination}',$dialplan);
+		self::assertStringContainsString('application="transfer"',$dialplan);
 	}
 
 	public function test_extension_search_has_consistent_border_and_empty_result_state(): void {

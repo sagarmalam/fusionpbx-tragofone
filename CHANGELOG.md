@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.2 - 2026-08-13
+
+- Prefer FusionPBX **Outbound Caller ID Number** for Tragofone `sip_callerid`, falling back to Effective Caller ID Number only when the outbound field is blank (#5).
+- Treat Tragofone's SIP `603 Decline` as a busy-forward event when FusionPBX **When busy** forwarding is enabled (#34).
+- Use session-owned media tokens for both playback and download so Android's native audio-menu download does not depend on WebView cookies (#36).
+- Send direct voicemail downloads as binary attachments so iOS does not replace the download with an inline audio page (#36).
+- Mark voicemail read on authenticated playback at the server and update the card immediately when playback begins, without relying on background WebView requests (#31).
+- Clarify that the 2–15-character Tragofone boundary is enforced at synchronization selection; FusionPBX's native extension editor intentionally remains under FusionPBX control (#11).
+
 ## 0.2.1 - 2026-08-12
 
 - Auto-dismiss transient self-care success and validation messages after five seconds.

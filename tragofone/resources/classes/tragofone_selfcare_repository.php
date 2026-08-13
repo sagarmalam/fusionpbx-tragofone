@@ -101,7 +101,8 @@ final class tragofone_selfcare_repository {
 		$mailbox = $this->mailbox($session);
 		return [
 			'display_name'=>trim((string) ($session['effective_caller_id_name'] ?? $session['description'] ?? '')),
-			'extension'=>(string) $session['extension'], 'caller_id'=>(string) ($session['effective_caller_id_number'] ?? ''),
+			'extension'=>(string) $session['extension'],
+			'caller_id'=>(string) (($session['outbound_caller_id_number'] ?? '') !== '' ? $session['outbound_caller_id_number'] : ($session['effective_caller_id_number'] ?? '')),
 			'dids'=>array_values(array_filter(array_map(static fn($row)=>(string)$row['did_number'], $dids))),
 			'mailbox'=>$mailbox['voicemail_id'] ?? null, 'call_state'=>$this->call_state($session),
 		];
@@ -171,16 +172,25 @@ final class tragofone_selfcare_repository {
 		return $this->crypto->fingerprint('selfcare-voicemail-handle:'.$session['session_uuid'], $message_uuid);
 	}
 
+	public function voicemail_playback_token(array $session, string $message_uuid): string {
+		return $this->voicemail_media_token($session, $message_uuid, false);
+	}
+
 	public function voicemail_download_token(array $session, string $message_uuid): string {
+		return $this->voicemail_media_token($session, $message_uuid, true);
+	}
+
+	private function voicemail_media_token(array $session, string $message_uuid, bool $download): string {
 		if(!self::uuid_valid($message_uuid)||!self::uuid_valid((string)($session['session_uuid']??''))){return '';}
-		$payload=json_encode(['session'=>(string)$session['session_uuid'],'message'=>$message_uuid,'expires'=>time()+120],JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
+		$payload=json_encode(['session'=>(string)$session['session_uuid'],'message'=>$message_uuid,'download'=>$download,'expires'=>time()+900],JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
 		return rtrim(strtr($this->crypto->encrypt($payload),'+/','-_'),'=');
 	}
 
-	public function voicemail_download_from_token(string $token): ?array {
+	/** @return array{session:array,message:array,download:bool}|null */
+	public function voicemail_media_from_token(string $token): ?array {
 		if($token===''||strlen($token)>1024||!preg_match('/^[A-Za-z0-9_-]+$/',$token)){return null;}
 		try{$encoded=strtr($token,'-_','+/').str_repeat('=',(4-strlen($token)%4)%4);$decoded=$this->crypto->decrypt($encoded);$payload=json_decode($decoded,true,8,JSON_THROW_ON_ERROR);}catch(Throwable){return null;}
-		if(!is_array($payload)||!self::uuid_valid((string)($payload['session']??''))||!self::uuid_valid((string)($payload['message']??''))||(int)($payload['expires']??0)<time()||(int)($payload['expires']??0)>time()+180){return null;}
+		if(!is_array($payload)||!self::uuid_valid((string)($payload['session']??''))||!self::uuid_valid((string)($payload['message']??''))||(int)($payload['expires']??0)<time()||(int)($payload['expires']??0)>time()+960||!is_bool($payload['download']??null)){return null;}
 		$sql="select ss.session_uuid,s.domain_uuid,s.extension_uuid,s.active,e.*,d.domain_name,m.sync_status,t.selfcare_policy as domain_selfcare_policy,p.selfcare_policy as user_selfcare_policy from v_tragofone_selfcare_sessions ss "
 			."join v_tragofone_selfcare_subjects s on s.subject_uuid=ss.subject_uuid join v_extensions e on e.extension_uuid=s.extension_uuid and e.domain_uuid=s.domain_uuid "
 			."join v_domains d on d.domain_uuid=s.domain_uuid join v_tragofone_tenants t on t.domain_uuid=s.domain_uuid and t.enabled=true "
@@ -189,7 +199,8 @@ final class tragofone_selfcare_repository {
 			."where ss.session_uuid=:session_uuid and ss.revoked_at is null and ss.idle_expires_at>now() and ss.absolute_expires_at>now() and s.active=true and e.enabled=true and m.sync_status='synchronized'";
 		$session=$this->row($sql,['session_uuid'=>$payload['session']]);if($session===null){return null;}
 		$config=$this->global_config();if(!tragofone_selfcare_policy::enabled(tragofone_selfcare_policy::global($config),$session['domain_selfcare_policy']??'inherit',$session['user_selfcare_policy']??'inherit')){return null;}
-		return $this->voicemail_message($session,(string)$payload['message']);
+		$message=$this->voicemail_message($session,(string)$payload['message']);
+		return $message===null?null:['session'=>$session,'message'=>$message,'download'=>$payload['download']];
 	}
 
 	public function voicemail_message_from_handle(array $session, string $handle): ?array {
@@ -210,12 +221,8 @@ final class tragofone_selfcare_repository {
 
 	public function stream_voicemail(array $session, string $message_uuid, bool $download): never {
 		$message=$this->voicemail_message($session,$message_uuid); if($message===null){http_response_code(404);exit;}
+		if(!$download&&!self::message_is_read($message)){$this->set_message_read($session,$message_uuid,true);}
 		$this->emit_voicemail_media($message,$download);
-	}
-
-	public function stream_downloaded_voicemail(array $message): never {
-		if(!self::uuid_valid((string)($message['voicemail_message_uuid']??''))){http_response_code(404);exit;}
-		$this->emit_voicemail_media($message,true);
 	}
 
 	private function emit_voicemail_media(array $message,bool $download): never {
@@ -230,8 +237,10 @@ final class tragofone_selfcare_repository {
 			if($start>$end||$start>=$size){http_response_code(416);header('Content-Range: bytes */'.$size);exit;}
 			http_response_code(206);header('Content-Range: bytes '.$start.'-'.$end.'/'.$size);
 		}
-		header('Accept-Ranges: bytes');header('Content-Type: '.$media['mime_type']);
-		header('Content-Disposition: '.($download?'attachment':'inline').'; filename="voicemail-message.'.$media['extension'].'"');
+		$filename='voicemail-message.'.$media['extension'];
+		header('Accept-Ranges: bytes');header('Content-Type: '.($download?'application/octet-stream':$media['mime_type']));
+		header('Content-Disposition: '.($download?'attachment':'inline').'; filename="'.$filename.'"; filename*=UTF-8\'\''.rawurlencode($filename));
+		if($download){header('Content-Transfer-Encoding: binary');}
 		header('Content-Length: '.($end-$start+1));echo substr($bytes,$start,$end-$start+1);exit;
 	}
 
@@ -354,5 +363,6 @@ final class tragofone_selfcare_repository {
 	private function upsert(string $table,string $primary,array $record):void{$columns=array_keys($record);$updates=array_values(array_diff($columns,[$primary,'created_at']));$sql='insert into '.$table.' ('.implode(',',$columns).') values (:'.implode(',:',$columns).') on conflict ('.$primary.') do update set '.implode(',',array_map(static fn($field)=>$field.'=excluded.'.$field,$updates));$this->execute($sql,$record);}
 	private static function truth(mixed $value):bool{return tragofone_normalizer::boolean($value)||in_array($value,['t','on'],true);}
 	private static function random_token():string{return rtrim(strtr(base64_encode(random_bytes(32)),'+/','-_'),'=');}
+	private static function message_is_read(array $message):bool{return ($message['message_status']??'')==='saved'||(int)($message['read_epoch']??0)>0;}
 	private static function uuid_valid(string $value):bool{return (bool)preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',$value);}
 }

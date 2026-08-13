@@ -29,7 +29,12 @@ final class tragofone_scanner {
 				$selfcare_user_policy
 			);
 			if ($sync_enabled) { $extension_numbers[(string) $extension['extension']] = $extension_uuid; }
-			$dids = tragofone_did_resolver::caller_ids((string) $extension['extension'], $destinations, $extension['effective_caller_id_number'] ?? null);
+			// FusionPBX's "Outbound Caller ID Number" is the authoritative
+			// public identity. Fall back to Effective Caller ID only for older
+			// records that do not define a separate outbound value.
+			$outbound_caller_id = trim((string) ($extension['outbound_caller_id_number'] ?? ''));
+			if ($outbound_caller_id === '') { $outbound_caller_id = $extension['effective_caller_id_number'] ?? null; }
+			$dids = tragofone_did_resolver::caller_ids((string) $extension['extension'], $destinations, $outbound_caller_id);
 			$tenant_policy = array_intersect_key($tenant, array_flip([
 				'default_profile_id', 'sip_server', 'sip_port', 'sip_protocol',
 				'outbound_proxy_server', 'outbound_proxy_port', 'voicemail_code',
@@ -40,7 +45,7 @@ final class tragofone_scanner {
 			]));
 			$source = ['extension' => $extension, 'dids' => $dids, 'sync_enabled' => $sync_enabled,
 				'selfcare_policy' => $selfcare_user_policy, 'selfcare_enabled' => $selfcare_enabled,
-				'tenant_policy' => $tenant_policy, 'policy_version' => 11];
+				'tenant_policy' => $tenant_policy, 'policy_version' => 12];
 			$hash = tragofone_normalizer::hash($source);
 			$previous = $this->store->snapshot($domain_uuid, 'extension', $extension_uuid);
 			$mapping = $this->store->extension_mapping($domain_uuid, $extension_uuid);

@@ -1,0 +1,10 @@
+<extension name="tragofone-forward-rejected" number="" context="global" continue="false" app_uuid="1b9e9c69-7d33-4d44-99ae-ccecb9e5d001" global="true" order="894">
+	<!-- Tragofone clients use SIP 603 when the user presses Reject. Treat that
+	     terminal response as busy only when FusionPBX busy forwarding is enabled. -->
+	<condition field="${originate_disposition}" expression="^CALL_REJECTED$"/>
+	<condition field="${forward_busy_enabled}" expression="^true$"/>
+	<condition field="${forward_busy_destination}" expression="^(.+)$">
+		<action application="set" data="last_busy_dialed_extension=${dialed_extension}"/>
+		<action application="transfer" data="$1 XML ${context}"/>
+	</condition>
+</extension>

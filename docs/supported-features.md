@@ -13,7 +13,7 @@
 | Tragofone QR login | Supported for synchronized mapped users; preview and download from FusionPBX |
 | QR delivery by email | Supported through configured FusionPBX SMTP; sent directly with a raster attachment |
 | Audio calling/dialpad | Supported through client configuration |
-| Effective outbound caller ID | Supported and trusted from the FusionPBX extension |
+| Outbound caller ID | FusionPBX Outbound Caller ID Number is trusted; Effective Caller ID Number is the blank-field fallback |
 | Emergency number | Synchronized from FusionPBX Emergency Caller ID Number |
 | Multiple direct DID caller IDs | Supported as additional caller-ID choices |
 | DID assignment mapping/visibility | Supported |
@@ -45,9 +45,9 @@ The integration synchronizes SIP/application credentials, supported enterprise c
 | Global/domain/user self-care access | Supported; Inherit/Yes/No with user-first precedence |
 | Self-care QR for another device | Supported for the authenticated synchronized user; displayed on demand and never stored |
 | Account, extension, DID, and caller-ID summary | Supported, read-only |
-| DND and all/busy/no-answer/not-registered forwarding | Supported |
+| DND and all/busy/no-answer/not-registered forwarding | Supported; a Tragofone `603 Decline` follows the configured busy-forward destination |
 | External forwarding | Conditional on global prefix policy |
-| Visual Voicemail playback/download/read/delete | Supported when FusionPBX voicemail schema and media are available; timestamps use device local time and downloads support mobile WebViews |
+| Visual Voicemail playback/download/read/delete | Supported when FusionPBX voicemail schema and media are available; playback uses owned media tokens, read state updates on play, and downloads use mobile-compatible binary attachments |
 | Voicemail notification email and PIN | Supported |
 | Tenant-specific branding | Not supported; branding is global |
 | Server recordings and CDR history | Not supported in this release |
