@@ -72,9 +72,11 @@ final class SelfCareIssueRegressionTest extends TestCase {
 		$action=file_get_contents($app.'/action.php');$voicemail=file_get_contents($app.'/voicemail.php');$repository=file_get_contents(dirname($app).'/resources/classes/tragofone_selfcare_repository.php');
 		self::assertStringContainsString("'save_calls'=>'calls.php'",$action);
 		self::assertStringContainsString('voicemail_playback_token',$voicemail);
-		self::assertStringContainsString(' download>Download</a>',$voicemail);
+		self::assertStringContainsString(' download="voicemail-message.wav">Download</a>',$voicemail);
 		self::assertStringContainsString("header('Accept-Ranges: bytes')",$repository);
-		self::assertStringContainsString('application/octet-stream',$repository);
+		self::assertStringContainsString("header('Content-Type: '.\$media['mime_type'])",$repository);
+		self::assertStringNotContainsString('application/octet-stream',$repository);
+		self::assertStringNotContainsString('Content-Transfer-Encoding',$repository);
 		self::assertStringContainsString("Content-Disposition:",$repository);
 	}
 

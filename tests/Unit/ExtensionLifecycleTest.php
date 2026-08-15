@@ -23,6 +23,10 @@ final class extension_lifecycle_store implements tragofone_store {
 	public function enabled_tenants(): array { return []; }
 	public function tenant(string $domain_uuid): ?array { return array_replace(['domain_uuid' => $domain_uuid, 'default_profile_id' => 1, 'sip_server' => 'pbx.test', 'sip_port' => 5061, 'sip_protocol' => 'tls', 'voicemail_code' => '*97'], $this->tenant_config); }
 	public function changed_extensions(string $domain_uuid, ?string $since): array { return $this->extensions; }
+	public function current_extension(string $domain_uuid, string $extension_uuid): ?array {
+		foreach ($this->extensions as $extension) { if (($extension['extension_uuid'] ?? null) === $extension_uuid) { return $extension; } }
+		return ['extension_uuid'=>$extension_uuid, 'extension'=>'1001'];
+	}
 	public function destinations(string $domain_uuid): array { return $this->destination_rows; }
 	public function extension_sync_policies(string $domain_uuid): array { return $this->sync_policies; }
 	public function snapshot(string $domain_uuid, string $entity_type, string $entity_uuid): ?array { return $this->snapshots[$entity_type.':'.$entity_uuid] ?? null; }
@@ -158,6 +162,22 @@ final class ExtensionLifecycleTest extends TestCase {
 		self::assertSame(0, (new tragofone_scanner($store))->scan_tenant(['domain_uuid'=>'domain-1'], null));
 		self::assertSame([], $store->jobs);
 		self::assertArrayHasKey('extension:ext-1', $store->snapshots);
+	}
+
+	public function test_worker_rechecks_live_extension_before_running_a_stale_create_job(): void {
+		$store = new extension_lifecycle_store(); $current = $this->extension(); $current['extension'] = '1'; $store->extensions = [$current];
+		$store->claimed_job = [
+			'job_uuid'=>'stale-create', 'domain_uuid'=>'domain-1', 'entity_type'=>'extension', 'entity_uuid'=>'ext-1',
+			'operation'=>'create_user', 'payload'=>json_encode(['extension'=>$this->extension(),'dids'=>[]], JSON_THROW_ON_ERROR),
+			'record_hash'=>'old-valid-hash', 'attempt_count'=>0,
+		];
+		$transport = new extension_lifecycle_transport();
+		$factory = static function () use ($transport): tragofone_client {
+			$client = new tragofone_client('https://trago.test', $transport); $client->customer_login('company', 'password'); return $client;
+		};
+		self::assertTrue((new tragofone_worker($store, $factory))->run_once('worker'));
+		self::assertCount(0, $transport->requests, 'No Tragofone login or user-create request may run for the now-invalid live extension.');
+		self::assertSame([], $store->extension_map); self::assertSame(['stale-create'], $store->completed);
 	}
 
 	public function test_scanner_prefers_fusionpbx_outbound_caller_id_over_effective_caller_id(): void {
