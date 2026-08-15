@@ -2,37 +2,15 @@
 
 The companion schema migrations are forward-only. Test every upgrade against the supported FusionPBX/PHP matrix in [Installation](installation.md) and take a backup before replacing application files.
 
-## Before upgrading
-
-1. Record the installed companion and FusionPBX versions:
-
-   ```bash
-   cat /var/www/fusionpbx/app/tragofone/VERSION
-   php /var/www/fusionpbx/core/upgrade/upgrade.php --version
-   php -v
-   ```
-
-2. Back up `/etc/fusionpbx/tragofone.env` while preserving its permissions.
-3. Back up all `v_tragofone_*` tables from the FusionPBX PostgreSQL database. Do not include the key file or database dump in Git, tickets, or chat.
-4. Confirm that no job is currently `processing`, then stop both timers:
-
-   ```bash
-   sudo systemctl stop tragofone-worker.timer tragofone-reconcile.timer
-   ```
-
 ## Upgrade
 
-Obtain and verify the approved source commit. From the repository root, rerun the installer using the same overrides as the original installation:
+Obtain and verify the approved source commit outside the FusionPBX web root. The maintenance command records versions, stops timers, blocks while jobs are processing, creates a protected file/database backup, runs the installer, and finishes with a health check:
 
 ```bash
-sudo FUSIONPBX_ROOT=/var/www/fusionpbx \
-  PHP_BIN=/usr/bin/php \
-  FUSIONPBX_USER=www-data \
-  FUSIONPBX_GROUP=www-data \
-  ./tragofone/resources/install/install.sh
+sudo ./tragofone/resources/install/manage.sh upgrade
 ```
 
-The installer preserves the existing encryption-key file, replaces/updates application files, runs the FusionPBX schema/default upgrade, restores declared group permissions, reloads systemd, and enables both timers.
+Use `--database-name` or `--database-os-user` for a non-default local PostgreSQL setup. For a remote or separately backed-up database, use `--skip-database-backup` only after confirming the approved database backup. The low-level `install.sh` remains available for recovery, but routine upgrades should use the manager. See [Plugin maintenance](maintenance.md) for every command and safety override.
 
 Upgrading from 0.1.x to 0.2.x creates the companion-owned self-care subject, session, assertion, and rate-limit tables and adds global branding fields. Later 0.2.x upgrades add global, domain, and user `selfcare_policy` fields. New policy values default to **Inherit**; an all-Inherit chain resolves to No. A legacy global `selfcare_enabled=true` is interpreted as global **Yes** until the Superadmin explicitly saves the new selector.
 
@@ -41,9 +19,8 @@ The QR enrollment update adds `tragofone_qr_view`, `tragofone_qr_download`, and 
 ## Verify
 
 ```bash
-sudo systemctl is-active tragofone-worker.timer tragofone-reconcile.timer
-sudo systemctl start tragofone-worker.service
-sudo journalctl -u tragofone-worker.service -n 50 --no-pager
+sudo /var/www/fusionpbx/app/tragofone/resources/install/manage.sh doctor
+sudo /var/www/fusionpbx/app/tragofone/resources/install/manage.sh worker
 ```
 
 Sign out/in to FusionPBX, open the module, confirm the active tenant configuration, and run reconciliation. A successful oneshot service becomes `inactive (dead)` after it exits; verify its last result and the active timer instead of expecting the service to remain running.

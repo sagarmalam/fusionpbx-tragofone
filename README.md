@@ -4,7 +4,7 @@ Native, multi-tenant FusionPBX application for provisioning and operating Tragof
 
 The application works with open-source FusionPBX. It does not require a FusionPBX commercial license, licensed API, core patch, remote database connection, or Tragofone server/client change.
 
-Current package version: **0.2.4**. See the exact supported platform and validation boundaries in [Installation](docs/installation.md) and [Validation](docs/validation.md).
+Current package version: **0.2.5**. See the exact supported platform and validation boundaries in [Installation](docs/installation.md) and [Validation](docs/validation.md).
 
 ## Features
 
@@ -117,7 +117,7 @@ FusionPBX 5.4 and older, PHP 8.4/8.5, FreeBSD, and non-systemd deployments are n
 ## Installation and configuration
 
 1. Review [Installation](docs/installation.md) and confirm the exact platform requirements.
-2. Install the native app and systemd services using the supplied installer.
+2. Install the native app, schema/defaults, and systemd services with `sudo ./tragofone/resources/install/manage.sh install`.
 3. Sign out and back into FusionPBX, then open **Advanced → Tragofone Integration**.
 4. Configure global defaults if needed, configure each tenant, test the Tragofone identity, and select extensions.
 5. Run reconciliation and verify mappings, jobs, SIP registration, DID choices, phonebook records, QR enrollment, and self-care.
@@ -127,6 +127,7 @@ Use the [User manual](docs/user-manual.md) for the complete Superadmin and compa
 ## Documentation
 
 - [Installation and compatibility](docs/installation.md)
+- [Plugin maintenance command](docs/maintenance.md)
 - [Configuration reference](docs/configuration.md)
 - [Superadmin and company-admin user manual](docs/user-manual.md)
 - [Supported and unsupported features](docs/supported-features.md)
@@ -160,7 +161,7 @@ composer lint
 composer test
 ```
 
-CI runs syntax checks and 116 automated tests with 454 assertions on PHP 8.1, 8.2, and 8.3.
+CI runs syntax checks and 122 automated tests with 506 assertions on PHP 8.1, 8.2, and 8.3.
 
 ## License
 

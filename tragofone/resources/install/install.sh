@@ -9,13 +9,13 @@ FUSIONPBX_GROUP="${FUSIONPBX_GROUP:-www-data}"
 TARGET="${FUSIONPBX_ROOT}/app/tragofone"
 
 [[ ${EUID} -eq 0 ]] || { echo "Run this installer as root (or with sudo)." >&2; exit 1; }
-for command in install cp chown chmod getent openssl systemctl sed; do
+for command in install cp chown chmod getent openssl readlink systemctl sed; do
 	command -v "${command}" >/dev/null 2>&1 || { echo "Required command not found: ${command}" >&2; exit 1; }
 done
 [[ -n "${PHP_BIN}" && -x "${PHP_BIN}" ]] || { echo "PHP CLI was not found. Set PHP_BIN to its absolute path." >&2; exit 1; }
 [[ "${PHP_BIN}" = /* && "${FUSIONPBX_ROOT}" = /* ]] || { echo "PHP_BIN and FUSIONPBX_ROOT must be absolute paths." >&2; exit 1; }
 [[ "${PHP_BIN}" =~ ^/[A-Za-z0-9._/-]+$ && "${FUSIONPBX_ROOT}" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "PHP_BIN and FUSIONPBX_ROOT contain unsupported path characters." >&2; exit 1; }
-[[ "${FUSIONPBX_USER}" =~ ^[A-Za-z0-9._-]+$ && "${FUSIONPBX_GROUP}" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "Runtime user or group contains unsupported characters." >&2; exit 1; }
+[[ "${FUSIONPBX_USER}" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]*$ && "${FUSIONPBX_GROUP}" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]*$ ]] || { echo "Runtime user or group contains unsupported characters." >&2; exit 1; }
 id "${FUSIONPBX_USER}" >/dev/null 2>&1 || { echo "Runtime user not found: ${FUSIONPBX_USER}" >&2; exit 1; }
 getent group "${FUSIONPBX_GROUP}" >/dev/null 2>&1 || { echo "Runtime group not found: ${FUSIONPBX_GROUP}" >&2; exit 1; }
 test -f "${FUSIONPBX_ROOT}/resources/require.php" || { echo "FusionPBX runtime bootstrap not found at ${FUSIONPBX_ROOT}" >&2; exit 1; }
@@ -35,7 +35,9 @@ test -f "${FUSIONPBX_ROOT}/resources/qr_code/QRCode.php" || { echo "FusionPBX QR
 
 install -d -o "${FUSIONPBX_USER}" -g "${FUSIONPBX_GROUP}" "${TARGET}"
 # Copy only the native FusionPBX application, not the repository wrapper.
-cp -a "${SOURCE_DIR}/." "${TARGET}/"
+if [[ "$(readlink -f "${SOURCE_DIR}")" != "$(readlink -f "${TARGET}")" ]]; then
+	cp -a "${SOURCE_DIR}/." "${TARGET}/"
+fi
 if [[ -f "$(dirname "${SOURCE_DIR}")/VERSION" ]]; then
 	install -m 0644 "$(dirname "${SOURCE_DIR}")/VERSION" "${TARGET}/VERSION"
 fi

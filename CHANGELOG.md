@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.5 - 2026-08-15
+
+- Add a unified maintenance command for safe install/upgrade, protected file and plugin-table backups, health diagnostics, timer repair, worker/reconciliation runs, and logs.
+
 ## 0.2.4 - 2026-08-15
 
 - Recheck the live FusionPBX extension immediately before every queued remote user operation so a stale job can never create or reactivate an extension that was renamed outside Tragofone's 2–15-character boundary (#11).
