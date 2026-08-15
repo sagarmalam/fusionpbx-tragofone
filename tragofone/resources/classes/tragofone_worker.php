@@ -24,9 +24,31 @@ final class tragofone_worker {
 		$payload = json_decode($job['payload'], true, 512, JSON_THROW_ON_ERROR);
 		$tenant = $this->store->tenant($job['domain_uuid']);
 		if ($tenant === null) { throw new RuntimeException('Enabled tenant configuration is missing.'); }
-		/** @var tragofone_client $client */ $client = ($this->client_factory)($tenant);
-		if ($job['entity_type'] === 'contact') { $this->process_contact($job, $payload, $client); return; }
+		if ($job['entity_type'] === 'contact') {
+			/** @var tragofone_client $contact_client */ $contact_client = ($this->client_factory)($tenant);
+			$this->process_contact($job, $payload, $contact_client); return;
+		}
 		$mapping = $this->store->extension_mapping($job['domain_uuid'], $job['entity_uuid']);
+		$stale_status = null;
+		if (!in_array($job['operation'], ['schedule_user_deletion', 'delete_user'], true)) {
+			// The outbox payload is an immutable snapshot and can be stale by the
+			// time it runs. Recheck the live FusionPBX row before any remote write
+			// so a previously valid job cannot provision or re-enable an extension
+			// that was subsequently renamed outside Tragofone's 2-15 character
+			// boundary.
+			$current = $this->store->current_extension($job['domain_uuid'], $job['entity_uuid']);
+			if ($current === null) { $stale_status = 'missing'; }
+			else { try { tragofone_normalizer::sip_extension((string) ($current['extension'] ?? '')); } catch (InvalidArgumentException) { $stale_status = 'invalid'; } }
+			if ($stale_status !== null && $mapping === null) { return; }
+		}
+		/** @var tragofone_client $client */ $client = ($this->client_factory)($tenant);
+		if ($stale_status !== null && $mapping !== null) {
+			$client->update_user(['user_id' => (int) $mapping['tragofone_user_id'], 'usr_status' => 'N']);
+			$mapping['sync_status'] = $stale_status === 'invalid' ? 'excluded' : 'disabled';
+			$mapping['last_operation'] = $stale_status === 'invalid' ? 'exclude_invalid_extension' : 'disable_missing_extension';
+			$mapping['delete_after'] = null; $mapping['last_synced_at'] = gmdate('c'); $mapping['update_date'] = gmdate('c');
+			$this->disable_selfcare($client, $mapping); $this->store->save_extension_mapping($mapping); return;
+		}
 		if ($job['operation'] === 'schedule_user_deletion') {
 			if ($mapping === null) { throw new RuntimeException('Extension mapping is missing.'); }
 			$client->update_user(['user_id' => (int) $mapping['tragofone_user_id'], 'usr_status' => 'N']);

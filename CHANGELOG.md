@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.4 - 2026-08-15
+
+- Recheck the live FusionPBX extension immediately before every queued remote user operation so a stale job can never create or reactivate an extension that was renamed outside Tragofone's 2–15-character boundary (#11).
+- Show a dedicated, prominent eligibility status and validation reason for every extension in Extension Synchronization (#11).
+- Serve voicemail downloads with their real audio media type, attachment disposition, and an explicit WAV filename so iOS WebViews use the native preview/share flow instead of displaying raw bytes; Android's cookie-free owned-media path is preserved (#36).
+
 ## 0.2.3 - 2026-08-13
 
 - Evaluate Tragofone SIP `603 Decline` after the extension bridge completes, then apply FusionPBX **When busy** forwarding before voicemail (#34).

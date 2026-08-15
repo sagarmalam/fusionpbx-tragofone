@@ -238,9 +238,11 @@ final class tragofone_selfcare_repository {
 			http_response_code(206);header('Content-Range: bytes '.$start.'-'.$end.'/'.$size);
 		}
 		$filename='voicemail-message.'.$media['extension'];
-		header('Accept-Ranges: bytes');header('Content-Type: '.($download?'application/octet-stream':$media['mime_type']));
+		// Keep the real audio type for attachments. iOS/WKWebView may render an
+		// octet-stream response as raw bytes instead of handing a WAV file to its
+		// preview/share flow. Content-Disposition still selects download mode.
+		header('Accept-Ranges: bytes');header('Content-Type: '.$media['mime_type']);
 		header('Content-Disposition: '.($download?'attachment':'inline').'; filename="'.$filename.'"; filename*=UTF-8\'\''.rawurlencode($filename));
-		if($download){header('Content-Transfer-Encoding: binary');}
 		header('Content-Length: '.($end-$start+1));echo substr($bytes,$start,$end-$start+1);exit;
 	}
 

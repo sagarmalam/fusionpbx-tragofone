@@ -4,6 +4,7 @@ interface tragofone_store {
 	public function enabled_tenants(): array;
 	public function tenant(string $domain_uuid): ?array;
 	public function changed_extensions(string $domain_uuid, ?string $since): array;
+	public function current_extension(string $domain_uuid, string $extension_uuid): ?array;
 	public function destinations(string $domain_uuid): array;
 	public function extension_sync_policies(string $domain_uuid): array;
 	public function snapshot(string $domain_uuid, string $entity_type, string $entity_uuid): ?array;
@@ -58,6 +59,10 @@ final class tragofone_fusionpbx_store implements tragofone_store {
 		$params = ['domain_uuid' => $domain_uuid];
 		if ($since !== null) { $sql .= ' and (e.update_date > :since or v.update_date > :since)'; $params['since'] = $since; }
 		return $this->select($sql, $params);
+	}
+	public function current_extension(string $domain_uuid, string $extension_uuid): ?array {
+		$sql = "select e.*, d.domain_name, coalesce(v.voicemail_enabled, false) as voicemail_enabled from v_extensions e join v_domains d on d.domain_uuid = e.domain_uuid left join v_voicemails v on v.domain_uuid=e.domain_uuid and v.voicemail_id=(case when e.number_alias ~ '^[0-9]+$' and e.number_alias <> '' then e.number_alias else e.extension end) where e.domain_uuid=:domain_uuid and e.extension_uuid=:extension_uuid";
+		return $this->first($sql, compact('domain_uuid', 'extension_uuid'));
 	}
 	public function destinations(string $domain_uuid): array { return $this->select('select * from v_destinations where domain_uuid = :domain_uuid', ['domain_uuid' => $domain_uuid]); }
 	public function extension_sync_policies(string $domain_uuid): array { return $this->select('select * from v_tragofone_extension_policies where domain_uuid=:domain_uuid', compact('domain_uuid')); }
