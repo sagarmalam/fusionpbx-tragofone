@@ -18,5 +18,6 @@ jobs:
           extensions: curl, fileinfo, gd, json, mbstring, pdo_pgsql, sodium
       - run: composer install --no-interaction --prefer-dist
       - run: bash -n tragofone/resources/install/install.sh
+      - run: bash -n tragofone/resources/install/manage.sh
       - run: composer lint
       - run: composer test

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add a unified maintenance command for safe install/upgrade, protected file and plugin-table backups, health diagnostics, timer repair, worker/reconciliation runs, and logs.
+
 ## 0.2.3 - 2026-08-13
 
 - Evaluate Tragofone SIP `603 Decline` after the extension bridge completes, then apply FusionPBX **When busy** forwarding before voicemail (#34).

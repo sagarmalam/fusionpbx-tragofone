@@ -72,11 +72,11 @@ If GitHub CLI is unavailable, use an authenticated `git clone` or securely copy 
 
 ## 3. Run the installer
 
-For the standard FusionPBX layout:
+For the standard FusionPBX layout, use the maintenance command so installation finishes with a health check:
 
 ```bash
 cd "$HOME/src/fusionpbx-tragofone"
-sudo ./tragofone/resources/install/install.sh
+sudo ./tragofone/resources/install/manage.sh install
 ```
 
 The default values are:
@@ -91,12 +91,14 @@ The default values are:
 For a non-standard installation, pass absolute paths and the real runtime account explicitly:
 
 ```bash
-sudo FUSIONPBX_ROOT=/srv/fusionpbx \
-  PHP_BIN=/usr/bin/php8.3 \
-  FUSIONPBX_USER=www-data \
-  FUSIONPBX_GROUP=www-data \
-  ./tragofone/resources/install/install.sh
+sudo ./tragofone/resources/install/manage.sh install \
+  --fusionpbx-root /srv/fusionpbx \
+  --php-bin /usr/bin/php8.3 \
+  --user www-data \
+  --group www-data
 ```
+
+The manager delegates deployment to `install.sh`, which remains available as a low-level recovery entry point. See [Plugin maintenance](maintenance.md) for safe upgrades, backups, diagnostics, worker/reconciliation runs, and logs.
 
 The installer validates the PHP version/extensions and runtime account before changing files. It then:
 
