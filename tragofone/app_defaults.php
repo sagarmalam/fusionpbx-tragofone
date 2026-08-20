@@ -33,6 +33,13 @@ foreach ($defaults as [$category, $subcategory, $value, $type]) {
 	$settings->set('tragofone_'.$category, $subcategory, $value, $type);
 }
 
+// FusionPBX's rendered menu joins v_menu_items to v_menu_languages without a
+// DISTINCT clause. Older upgrades could leave duplicate language/group child
+// records even though Menu Manager displayed only one Tragofone item. Repair
+// only this app's stable source UUID whenever Application Defaults is run.
+require_once __DIR__.'/resources/classes/tragofone_menu_repair.php';
+tragofone_menu_repair::repair($database);
+
 // Global dialplan resources are imported during App Defaults. FusionPBX's XML
 // handler caches a complete context, so reloadxml alone cannot expose a newly
 // imported hook until each tenant context cache is invalidated.

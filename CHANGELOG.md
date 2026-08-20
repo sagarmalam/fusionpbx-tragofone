@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.6 - 2026-08-20
+
+- Repair duplicate Tragofone menu-language and group metadata during FusionPBX Application Defaults so a single Menu Manager item renders only once after upgrades (#39).
+- Use the native iOS Web Share file flow for voicemail **Share / Save**, with an owned-media fetch, Save to Files guidance, and a second-tap recovery when WebKit consumes the first user activation; preserve the existing Android download path (#36).
+
 ## 0.2.5 - 2026-08-15
 
 - Add a unified maintenance command for safe install/upgrade, protected file and plugin-table backups, health diagnostics, timer repair, worker/reconciliation runs, and logs.

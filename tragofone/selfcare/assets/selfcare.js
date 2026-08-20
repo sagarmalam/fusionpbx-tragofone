@@ -63,8 +63,68 @@
 		});
 	}
 
+	function enableIosVoicemailSharing() {
+		var appleMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+			(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+		if (!appleMobile || typeof window.File !== 'function' || typeof navigator.share !== 'function') return;
+
+		var cachedFiles = new WeakMap();
+		var status = document.querySelector('[data-download-status]');
+		function showStatus(message, error) {
+			if (!status) return;
+			status.textContent = message;
+			status.hidden = false;
+			status.classList.toggle('error', !!error);
+			status.classList.toggle('success', !error);
+			status.scrollIntoView({block: 'nearest'});
+		}
+		async function share(link, file) {
+			if (typeof navigator.canShare === 'function' && !navigator.canShare({files: [file]})) throw new Error('This iOS app does not support sharing audio files.');
+			await navigator.share({files: [file], title: 'Voicemail message'});
+			link.textContent = 'Share / Save';
+			showStatus('Use Save to Files in the iOS share sheet to keep this voicemail.', false);
+		}
+
+		document.querySelectorAll('[data-voicemail-download]').forEach(function (link) {
+			link.textContent = 'Share / Save';
+			link.addEventListener('click', async function (event) {
+				event.preventDefault();
+				if (cachedFiles.has(link)) {
+					try { await share(link, cachedFiles.get(link)); }
+					catch (error) { if (error.name !== 'AbortError') showStatus(error.message || 'Unable to open the iOS share sheet.', true); }
+					return;
+				}
+
+				var original = link.textContent;
+				link.textContent = 'Preparing…';
+				link.setAttribute('aria-disabled', 'true');
+				try {
+					var response = await fetch(link.href, {credentials: 'same-origin', cache: 'no-store'});
+					if (!response.ok) throw new Error('The voicemail link expired. Refresh this page and try again.');
+					var blob = await response.blob();
+					if (!blob.size) throw new Error('The voicemail file is empty.');
+					if (blob.type && !/^audio\//i.test(blob.type)) throw new Error('The voicemail response was not an audio file. Refresh this page and try again.');
+					var file = new File([blob], link.getAttribute('data-filename') || 'voicemail-message.wav', {type: blob.type || 'audio/wav'});
+					cachedFiles.set(link, file);
+					link.removeAttribute('aria-disabled');
+					await share(link, file);
+				} catch (error) {
+					link.removeAttribute('aria-disabled');
+					link.textContent = cachedFiles.has(link) ? 'Tap again to Share / Save' : original;
+					if (error.name === 'AbortError') return;
+					if (error.name === 'NotAllowedError' && cachedFiles.has(link)) {
+						showStatus('The voicemail is ready. Tap Share / Save again to open the iOS share sheet.', false);
+						return;
+					}
+					showStatus(error.message || 'Unable to prepare this voicemail for sharing.', true);
+				}
+			});
+		});
+	}
+
 	formatLocalTimes();
 	dismissNotices();
 	validateForwardingSelection();
 	markPlayedVoicemailRead();
+	enableIosVoicemailSharing();
 })();

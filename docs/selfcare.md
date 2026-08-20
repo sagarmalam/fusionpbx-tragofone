@@ -42,6 +42,8 @@ Tragofone limits `myaccount_url` to 200 characters. The worker therefore configu
 
 The portal validates the two-minute Tragofone assertion, 60-second future clock skew, companion HMAC, brand-version reference, replay state, extension/mapping status, and effective global/domain/user access policy. Modified subject, signature, or future-version parameters fail validation. An authentic older compact URL remains usable during an asynchronous branding rollout and always renders the current trusted global theme; salt rotation or subject revocation invalidates it. The launch then redirects to a clean URL and stores only a hashed session token server-side. Legacy long-form signed links remain launch-compatible during migration, while all newly provisioned links use the compact format.
 
+On iOS, the visible voicemail action uses WebKit's native file-sharing sheet so the user can choose **Save to Files**. This avoids relying on WKWebView's unsupported HTML download navigation. If preparing the audio consumes the initial iOS user activation, the portal keeps the file in memory and asks for one more tap. Android retains the normal direct download and audio-player menu behavior.
+
 ## Interface screenshots
 
 - [FusionPBX global branding](images/fusionpbx-selfcare-branding.jpg)

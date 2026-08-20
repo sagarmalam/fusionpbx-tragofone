@@ -72,7 +72,14 @@ final class SelfCareIssueRegressionTest extends TestCase {
 		$action=file_get_contents($app.'/action.php');$voicemail=file_get_contents($app.'/voicemail.php');$repository=file_get_contents(dirname($app).'/resources/classes/tragofone_selfcare_repository.php');
 		self::assertStringContainsString("'save_calls'=>'calls.php'",$action);
 		self::assertStringContainsString('voicemail_playback_token',$voicemail);
-		self::assertStringContainsString(' download="voicemail-message.wav">Download</a>',$voicemail);
+		self::assertStringContainsString('download="voicemail-message.wav" data-voicemail-download',$voicemail);
+		self::assertStringContainsString("/iPhone|iPad|iPod/i",$script=file_get_contents($app.'/assets/selfcare.js'));
+		self::assertStringContainsString("typeof navigator.canShare === 'function'",$script);
+		self::assertStringContainsString("navigator.canShare({files: [file]})",$script);
+		self::assertStringContainsString("await navigator.share({files: [file]",$script);
+		self::assertStringContainsString("new File([blob]",$script);
+		self::assertStringContainsString("error.name === 'NotAllowedError'",$script);
+		self::assertStringContainsString('Use Save to Files in the iOS share sheet',$script);
 		self::assertStringContainsString("header('Accept-Ranges: bytes')",$repository);
 		self::assertStringContainsString("header('Content-Type: '.\$media['mime_type'])",$repository);
 		self::assertStringNotContainsString('application/octet-stream',$repository);
